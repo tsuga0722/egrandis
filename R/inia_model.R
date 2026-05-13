@@ -40,7 +40,21 @@
 
   # Inverse Weibull polynomial coefficients (SAG 2003 eqn 18)
   weibull_kz = c(-0.22004032, -0.001433169, 0.150611381,
-                 -0.078575996,  0.004305716, 0.008804944)
+                 -0.078575996,  0.004305716, 0.008804944),
+
+  # Aboveground biomass module. Calibrated against SAG grandis 2021
+  # output (3 scenarios, 15 data points, RRMSE 5.4%). See R/inia_biomass.R.
+  biomass = list(
+    # Tree-level AGB allometry: AGB(kg) = a * d^b1 * h^b2
+    tree_a  = 0.040403,
+    tree_b1 = 2.5094,
+    tree_b2 = 0.2362,
+    # Height-diameter saturation curve parameter
+    hd_k = 0.1482,
+    # IPCC subtropical hardwood carbon fraction; CO2eq factor = 0.49 * 44/12.
+    carbon_fraction = 0.49,
+    co2_factor      = 0.49 * 44 / 12
+  )
 )
 
 

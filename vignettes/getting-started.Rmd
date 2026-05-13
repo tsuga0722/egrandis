@@ -239,6 +239,45 @@ The two estimates can differ by 10-20% at the stand level because they
 reflect different data sources and bark conventions. Use the one that
 matches your downstream calculation.
 
+## Aboveground biomass, carbon, and CO2-equivalent
+
+`egrandis` also estimates total aboveground dry biomass (stem +
+branches + foliage) using an allometric equation
+\(AGB = a \cdot d^{b_1} \cdot h^{b_2}\) integrated across the recovered
+diameter distribution, with a stand-specific exponential h-d curve. The
+coefficients were jointly fitted against three SAG 2021 reference
+scenarios (RRMSE 5.4%). Carbon and CO2-equivalent follow IPCC
+subtropical-hardwood defaults.
+
+```{r}
+sim <- inia_add_biomass(sim)
+head(sim$trajectory[, c("age", "Vol_Total", "Biomasa", "Carbon", "CO2eq")])
+```
+
+```{r}
+op <- par(mar = c(4, 4.2, 1, 4.2))
+with(sim$trajectory, {
+  plot(age, Biomasa, type = "l", lwd = 2, col = "darkgreen",
+       xlab = "Age (years)", ylab = "Biomass (t/ha)",
+       main = "Aboveground biomass and CO2 stock")
+  par(new = TRUE)
+  plot(age, CO2eq, type = "l", lwd = 2, col = "steelblue", lty = 2,
+       axes = FALSE, xlab = "", ylab = "")
+  axis(4, col.axis = "steelblue", col = "steelblue")
+  mtext("CO2 equivalent (t CO2/ha)", side = 4, line = 2.8, col = "steelblue")
+  legend("topleft", legend = c("AGB (t/ha)", "CO2eq (t CO2/ha)"),
+         col = c("darkgreen", "steelblue"), lwd = 2, lty = c(1, 2), bty = "n")
+})
+par(op)
+```
+
+For one-off estimates without a full simulation, call `inia_stand_agb()`
+directly with stand-level moments:
+
+```{r}
+inia_stand_agb(N = 364, Dq = 38.3, dmax = 49.2, SDd = 6.1, Hd = 30.0)
+```
+
 ## Known limitations
 
 The current INIA implementation has several documented limitations that
@@ -258,3 +297,8 @@ detail:
   with a linear cone tail to keep diameter monotone. The displaced
   volume is < 1% of total tree volume but means integrated total volume
   is a hair below the closed-form Fang total.
+- The biomass module was calibrated on three Zone 7 SAG 2021 scenarios
+  spanning SI 25-30 and N 550-1111. Outside that envelope (very low
+  density, Zones 8-9, young stands at low site quality) AGB estimates
+  will drift; the worst calibration case is the SI=25 / age 5 / 550 TPH
+  point at -14.8%. Ages 7+ in-envelope are within +-8%.
