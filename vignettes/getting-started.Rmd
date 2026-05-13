@@ -1,0 +1,260 @@
+---
+title: "Getting started with egrandis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with egrandis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5
+)
+```
+
+```{r}
+library(egrandis)
+```
+
+`egrandis` reproduces the INIA SAG grandis 2021 system for projecting
+*Eucalyptus grandis* stands in subtropical South America. This vignette
+walks through the public API.
+
+## A simple unthinned projection
+
+The reference scenario from INIA Uruguay: Zone 7 (Tacuarembó / Rivera),
+site index 30 m at base age 10, 550 trees per hectare, projected from
+age 1 to age 16.
+
+```{r}
+sim <- simulate_inia(
+  SI    = 30,
+  N0    = 550,
+  G0    = 1.7,
+  Hd0   = 5.2,
+  dmax0 = 8.0,
+  SDd0  = 1.3,
+  t0    = 1,
+  t_end = 16,
+  zone  = 7
+)
+
+head(sim$trajectory)
+```
+
+A formatted summary including the trajectory table is available through
+`inia_print_summary()`:
+
+```{r, results = "hide"}
+inia_print_summary(sim)
+```
+
+## Adding thinning events
+
+`thins` accepts a list of events, each a list of `age` (year of the
+thin) and `N_after` (post-thin trees per hectare). The simulator applies
+the empirical SAG 2003 BA-reduction equation to compute residual basal
+area and tracks volume removed.
+
+```{r}
+sim_thinned <- simulate_inia(
+  SI    = 30, N0 = 550, G0 = 1.7,
+  Hd0   = 5.2, dmax0 = 8.0, SDd0 = 1.3,
+  t0    = 1, t_end = 12, zone = 7,
+  thins = list(
+    list(age = 3, N_after = 412),
+    list(age = 7, N_after = 197)
+  )
+)
+
+sim_thinned$thinnings
+sim_thinned$total_yield  # standing + thinned volume
+```
+
+## Comparing density regimes
+
+Because the INIA model is a whole-stand projection, comparing regimes is
+just a matter of calling `simulate_inia()` with different inputs. Here
+we sweep across four initial densities and plot MAI curves.
+
+```{r}
+densities <- c(400, 550, 800, 1111)
+
+# Match INIA's age-1 BA convention: solve from a starting Dq of 6.3 cm.
+g_from_dq <- function(N, Dq = 6.3) N * pi * (Dq / 200)^2
+
+sims <- lapply(densities, function(n) {
+  simulate_inia(
+    SI = 30, N0 = n, G0 = g_from_dq(n),
+    Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
+    t0 = 1, t_end = 16, zone = 7
+  )
+})
+
+plot(NULL, xlim = c(1, 16), ylim = c(0, 55),
+     xlab = "Age (years)", ylab = "MAI (m^3/ha/yr)",
+     main = "MAI by initial density (Zone 7, SI = 30)")
+cols <- c("steelblue", "darkgreen", "darkorange", "firebrick")
+for (i in seq_along(sims)) {
+  lines(sims[[i]]$trajectory$age, sims[[i]]$trajectory$MAI,
+        col = cols[i], lwd = 2)
+}
+legend("bottomright", legend = paste(densities, "TPH"),
+       col = cols, lwd = 2, bty = "n")
+```
+
+## Diameter distributions
+
+The simulator carries enough stand-level moments (quadratic mean
+diameter, maximum diameter, diameter SD) to recover an inverse Weibull
+diameter distribution at any age. `inia_get_distribution()` is the
+convenience wrapper:
+
+```{r}
+dd10 <- inia_get_distribution(sim, age = 10)
+head(dd10)
+
+plot(dd10$class_mid, dd10$freq, type = "h", lwd = 4,
+     xlab = "DBH (cm)", ylab = "Trees / ha",
+     main = "Recovered diameter distribution at age 10")
+```
+
+The underlying recovery function `inia_diam_dist()` can also be called
+directly given any set of stand moments.
+
+## The validation dataset
+
+`sag_validation` is the dataset of five reference trajectories captured
+from the SAG grandis 2021 online simulator. Use it to verify the
+package or as a benchmark when re-fitting parameters.
+
+```{r}
+data(sag_validation)
+names(sag_validation)
+
+# Reproduce the reference scenario and compare basal-area trajectories
+ref <- sag_validation$z7_si30_n550
+sim <- do.call(
+  simulate_inia,
+  modifyList(ref$inputs, list(t0 = 1, t_end = 16,
+                              DAP_medio0 = NULL))
+)
+
+cbind(
+  age      = ref$trajectory$age,
+  sag_AB   = ref$trajectory$AB,
+  sim_AB   = sim$trajectory$AB,
+  delta    = round(sim$trajectory$AB - ref$trajectory$AB, 2)
+)
+```
+
+The `tests/` directory builds on this dataset to encode the documented
+per-submodel tolerances.
+
+## Taper, tree-level volume, and merchantable assortment
+
+`egrandis` ships with a tree-level taper-volume system separate from the
+INIA stand-level volume. It uses the Fang et al. (2000) compatible
+segmented system with the *E. grandis* coefficients reported by Hirigoyen
+et al. (2021) (iForest 14: 127--136, Table 4), fitted to felled-tree taper
+data from Uruguay.
+
+```{r}
+# Diameter profile of an average mid-rotation tree
+D <- 25; H <- 28
+h <- seq(0.10, H, length.out = 200)
+d <- inia_taper(h, D = D, H = H)
+
+plot(h, d, type = "l", lwd = 2,
+     xlab = "Height above ground (m)", ylab = "Stem diameter (cm)",
+     main = sprintf("Fang taper for D=%dcm, H=%dm", D, H))
+abline(h = c(8, 14, 25), lty = 3, col = "grey50")
+text(rep(0.5, 3), c(8, 14, 25), c("8 cm", "14 cm", "25 cm"),
+     pos = 3, col = "grey30", cex = 0.8)
+```
+
+Single-tree volumes:
+
+```{r}
+inia_tree_total_vol(D = 25, H = 28)         # closed-form Fang total
+inia_tree_vol(D = 25, H = 28, d_top = 8)    # merch to an 8 cm top
+inia_tree_vol(D = 25, H = 28, d_top = 14)   # merch to a 14 cm top
+inia_height_at_d(d_top = 14, D = 25, H = 28) # height where diameter = 14 cm
+```
+
+The cone-tail closure of segment 3 means integrated total volume is
+within ~1% of the closed-form Fang total; for total volume always
+prefer `inia_tree_total_vol()`.
+
+### Stand-level merchantable volume by product
+
+`inia_merch_vol()` runs the taper across the recovered Weibull diameter
+distribution at the requested age and buckets the volume into named
+products. By default it splits into veneer (>= 25 cm), solid (>= 14 cm),
+and pulp (>= 8 cm) on a butt-up cascade — the largest small-end limit
+takes the butt log down to its limit, the next product takes the next
+section, and so on.
+
+```{r}
+mv <- inia_merch_vol(sim, age = 16)
+attr(mv, "totals")
+
+barplot(
+  c(veneer = unname(attr(mv, "totals")["vol_veneer"]),
+    solid  = unname(attr(mv, "totals")["vol_solid"]),
+    pulp   = unname(attr(mv, "totals")["vol_pulp"])),
+  col = c("steelblue", "darkorange", "olivedrab"),
+  ylab = "Volume (m^3/ha)",
+  main = "Product assortment at age 16 (Zone 7, SI=30, 550 TPH)"
+)
+```
+
+Pass a custom `products =` list for any assortment scheme:
+
+```{r}
+mv_custom <- inia_merch_vol(
+  sim, age = 16,
+  products = list(saw = list(d_min = 18), pulp = list(d_min = 8))
+)
+attr(mv_custom, "totals")
+```
+
+### Two volume estimators, two purposes
+
+`egrandis` has *two* volume sources that do not agree exactly:
+
+- `simulate_inia()` reports stand-level total volume (`Vol_Total`) from
+  the INIA equation `V = exp(b0 + b1*ln(G*Hd) + b2*(Hd/Dg) + b3*Z7)`,
+  refit to SAG 2021 online output. This is the right number to compare
+  against the SAG simulator.
+- `inia_tree_total_vol()` and `inia_merch_vol()` use the Fang taper-volume
+  system fit by Hirigoyen et al. to felled-tree measurements. This is
+  the right number for product assortments and log bucking.
+
+The two estimates can differ by 10-20% at the stand level because they
+reflect different data sources and bark conventions. Use the one that
+matches your downstream calculation.
+
+## Known limitations
+
+The current INIA implementation has several documented limitations that
+users should keep in mind. See `?simulate_inia` and the README for
+detail:
+
+- Basal area overshoots when initialized at age 1 well below the
+  Schumacher asymptote. Initialize from age 3+ with measured G for
+  reliable projections.
+- Zone 8/9 mortality is unfitted (the current parameters produce no
+  background mortality). Zone 7 is the validated case.
+- The dmax submodel was fit at Zone 7 / 550 TPH. High-density and
+  Zone 8/9 dmax trajectories drift from SAG.
+- Mortality has no density feedback. Self-thinning at high density is
+  not represented.
+- The Fang taper's segment 3 (above relative height ~0.94) is replaced
+  with a linear cone tail to keep diameter monotone. The displaced
+  volume is < 1% of total tree volume but means integrated total volume
+  is a hair below the closed-form Fang total.

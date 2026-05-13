@@ -1,0 +1,30 @@
+Package: egrandis
+Type: Package
+Title: Growth and Yield Models for Eucalyptus grandis Clonal Plantations
+Version: 0.1.0
+Authors@R: c(
+    person("Your", "Name",
+           email = "you@example.com",
+           role = c("aut", "cre"))
+  )
+Description: Simulates growth, mortality, thinning response, and yield in
+    Eucalyptus grandis plantations across a range of management regimes,
+    intended for operational forestry planning in subtropical South America.
+    Currently provides a faithful reproduction of the INIA SAG grandis 2021
+    system (Rachid-Casnati et al. 2019; Methol 2003) validated against the
+    online simulator at sag.inia.uy. A density-dependent Paraguay model is
+    in development.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 4.0.0)
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://github.com/tsuga0722/egrandis
+BugReports: https://github.com/tsuga0722/egrandis/issues
+Config/roxygen2/version: 8.0.0
