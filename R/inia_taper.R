@@ -370,7 +370,9 @@ inia_merch_vol <- function(sim, age, products = NULL, hb = 0.10,
 
       d_butt_remaining <- inia_taper(h_prev, D = D_i, H = H_i, hb = hb)
       if (d_butt_remaining <= d_min) {
-        # No volume left for this or any smaller product above this point.
+        # This grade gets no wood from this tree -- the bole has already
+        # tapered below its small-end limit. Smaller-grade products that
+        # follow still get a shot at the remaining bole.
         next
       }
       h_next <- inia_height_at_d(d_min, D = D_i, H = H_i, hb = hb)

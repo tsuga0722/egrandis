@@ -216,7 +216,7 @@ barplot(
 )
 ```
 
-Pass a custom `products =` list for any assortment scheme:
+Pass a custom `products =` list for any assortment scheme. Two grades:
 
 ```{r}
 mv_custom <- inia_merch_vol(
@@ -224,6 +224,34 @@ mv_custom <- inia_merch_vol(
   products = list(sawlog = list(d_min = 18), pulp = list(d_min = 8))
 )
 attr(mv_custom, "totals")
+```
+
+The same mechanism scales to any number of grades. The example below
+buckets each stem into five solid-wood grades plus a residual biomass
+grade for everything down to a 4 cm small-end. Grade names are
+arbitrary -- substitute your market's nomenclature.
+
+```{r}
+mv_six <- inia_merch_vol(
+  sim, age = 16,
+  products = list(
+    grade_A = list(d_min = 35),
+    grade_B = list(d_min = 28),
+    grade_C = list(d_min = 22),
+    grade_D = list(d_min = 16),
+    grade_E = list(d_min = 10),
+    biomass = list(d_min = 4)
+  )
+)
+attr(mv_six, "totals")
+```
+
+The output of `inia_merch_vol()` is also a per-class data frame, so you
+can inspect how a single diameter class contributes to each grade:
+
+```{r}
+target <- mv_six[which.min(abs(mv_six$class_mid - 40)), ]
+round(target[, grep("^(class_mid|freq|H_class|vol_)", names(target))], 2)
 ```
 
 ### Two volume estimators, two purposes

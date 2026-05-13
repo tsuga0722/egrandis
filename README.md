@@ -102,7 +102,23 @@ inia_height_at_d(d_top = 14, D = 25, H = 28) # 15.2 m
 
 ![Taper profile](man/figures/taper-profile.png)
 
-`inia_merch_vol()` runs the taper across the recovered diameter distribution and buckets stand volume into named products using a butt-up cascade (largest small-end takes the butt log, the next product takes the next section, and so on). Defaults are three generic solid-wood grades — `large_sawlog` (≥ 25 cm), `small_sawlog` (≥ 14 cm), and `pulp` (≥ 8 cm); pass a `products =` list to customise for any market-specific assortment.
+`inia_merch_vol()` runs the taper across the recovered diameter distribution and buckets stand volume into named products using a butt-up cascade (largest small-end takes the butt log, the next product takes the next section, and so on). Defaults are three generic solid-wood grades — `large_sawlog` (≥ 25 cm), `small_sawlog` (≥ 14 cm), and `pulp` (≥ 8 cm); pass a `products =` list of any length to customise.
+
+```r
+inia_merch_vol(
+  sim, age = 16,
+  products = list(
+    grade_A = list(d_min = 35),
+    grade_B = list(d_min = 28),
+    grade_C = list(d_min = 22),
+    grade_D = list(d_min = 16),
+    grade_E = list(d_min = 10),
+    biomass = list(d_min = 4)
+  )
+)
+```
+
+See the *getting-started* vignette for a worked five-grade-plus-biomass example with the per-class breakdown.
 
 ![Merchantable assortment](man/figures/merch-assortment.png)
 
