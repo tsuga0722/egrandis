@@ -32,8 +32,8 @@ stand-level moments, estimates per-class height with
 then sums to the stand level.
 }
 \examples{
-# Reference scenario at age 10 (Zone 7, SI=30, 550 TPH)
-inia_stand_agb(N = 364, Dq = 38.3, dmax = 49.2, SDd = 6.1, Hd = 30.0)
+# Stand at mid-rotation
+inia_stand_agb(N = 700, Dq = 28.0, dmax = 35.0, SDd = 4.5, Hd = 24.0)
 }
 \seealso{
 [inia_add_biomass()] for trajectory-wide application.

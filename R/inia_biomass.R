@@ -82,8 +82,8 @@ inia_tree_agb <- function(d, h) {
 #' @family biomass
 #' @seealso [inia_add_biomass()] for trajectory-wide application.
 #' @examples
-#' # Reference scenario at age 10 (Zone 7, SI=30, 550 TPH)
-#' inia_stand_agb(N = 364, Dq = 38.3, dmax = 49.2, SDd = 6.1, Hd = 30.0)
+#' # Stand at mid-rotation
+#' inia_stand_agb(N = 700, Dq = 28.0, dmax = 35.0, SDd = 4.5, Hd = 24.0)
 #' @export
 inia_stand_agb <- function(N, Dq, dmax, SDd, Hd) {
   dd <- inia_diam_dist(N = N, Dq = Dq, dmax = dmax, SDd = SDd)
@@ -117,9 +117,9 @@ inia_stand_agb <- function(N, Dq, dmax, SDd, Hd) {
 #' @seealso [inia_stand_agb()], [simulate_inia()]
 #' @examples
 #' sim <- simulate_inia(
-#'   SI = 30, N0 = 550, G0 = 1.7,
-#'   Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-#'   t0 = 1, t_end = 16, zone = 7
+#'   SI = 28, N0 = 900, G0 = 7.0,
+#'   Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+#'   t0 = 2, t_end = 16, zone = 7
 #' )
 #' sim <- inia_add_biomass(sim)
 #' head(sim$trajectory[, c("age", "Vol_Total", "Biomasa", "Carbon", "CO2eq")])

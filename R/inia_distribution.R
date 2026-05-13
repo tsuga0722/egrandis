@@ -49,7 +49,7 @@ inia_weibull_cdf <- function(DAP, a, b, c) {
 #'   `ba_tree` (m2 per tree), and `ba_ha` (m2/ha). Classes with negligible
 #'   frequency (< 0.05 trees/ha) are dropped.
 #' @examples
-#' inia_diam_dist(N = 364, Dq = 38.3, dmax = 49.2, SDd = 6.1)
+#' inia_diam_dist(N = 700, Dq = 28.0, dmax = 35.0, SDd = 4.5)
 #' @export
 inia_diam_dist <- function(N, Dq, dmax, SDd, Hd = NULL, class_width = 1) {
   params <- inia_weibull_params(Dq, dmax, SDd)

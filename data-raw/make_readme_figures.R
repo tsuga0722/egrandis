@@ -12,6 +12,13 @@ png_open <- function(name, w = 1200, h = 800) {
 }
 
 
+# --- Baseline scenario reused across figures -----------------------------------
+baseline <- list(SI = 28, N0 = 900, G0 = 7.0,
+                 Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+                 t0 = 2, t_end = 16, zone = 7)
+sim_baseline <- do.call(simulate_inia, baseline)
+
+
 # --- 1. Taper profile of a typical mid-rotation tree ---------------------------
 png_open("taper-profile.png", w = 1200, h = 800)
 op <- par(mar = c(4.2, 4.2, 2.5, 1))
@@ -23,24 +30,24 @@ plot(h_vals, d_vals, type = "l", lwd = 2, col = "darkgreen",
      main = sprintf("Fang taper, D = %d cm, H = %d m", D, H))
 abline(h = c(8, 14, 25), lty = 3, col = "grey60")
 text(rep(0.5, 3), c(8.7, 14.7, 25.7),
-     c("8 cm (pulp)", "14 cm (solid)", "25 cm (veneer)"),
+     c("8 cm (pulp)", "14 cm (small sawlog)", "25 cm (large sawlog)"),
      pos = 4, col = "grey30", cex = 0.9)
 par(op); dev.off()
 
 
-# --- 2. MAI curves by initial density (Zone 7, SI = 30) ------------------------
+# --- 2. MAI curves by initial density (Zone 7, SI = 28) ------------------------
 png_open("mai-by-density.png", w = 1200, h = 800)
 op <- par(mar = c(4.2, 4.2, 2.5, 1))
-densities <- c(400, 550, 800, 1111)
-g_from_dq <- function(N, Dq = 6.3) N * pi * (Dq / 200)^2
+densities <- c(800, 900, 1000, 1100)
+g_from_dq <- function(N, Dq = 10) N * pi * (Dq / 200)^2
 sims <- lapply(densities, function(n) {
-  simulate_inia(SI = 30, N0 = n, G0 = g_from_dq(n),
-                Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-                t0 = 1, t_end = 16, zone = 7)
+  simulate_inia(SI = 28, N0 = n, G0 = g_from_dq(n),
+                Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+                t0 = 2, t_end = 16, zone = 7)
 })
-plot(NULL, xlim = c(1, 16), ylim = c(0, 55),
+plot(NULL, xlim = c(2, 16), ylim = c(0, 50),
      xlab = "Age (years)", ylab = expression("MAI (m"^3*" ha"^-1*" yr"^-1*")"),
-     main = "Mean annual increment by initial density (Zone 7, SI = 30)")
+     main = "Mean annual increment by initial density (Zone 7, SI = 28)")
 cols <- c("steelblue", "darkgreen", "darkorange", "firebrick")
 for (i in seq_along(sims)) {
   lines(sims[[i]]$trajectory$age, sims[[i]]$trajectory$MAI,
@@ -53,32 +60,32 @@ par(op); dev.off()
 
 # --- 3. Product assortment at age 16 -------------------------------------------
 png_open("merch-assortment.png", w = 1200, h = 800)
-op <- par(mar = c(4.2, 4.2, 2.5, 1))
-sim <- simulate_inia(SI = 30, N0 = 550, G0 = 1.7,
-                     Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-                     t0 = 1, t_end = 16, zone = 7)
-mv <- inia_merch_vol(sim, age = 16)
+op <- par(mar = c(5.5, 4.2, 2.5, 1))
+mv <- inia_merch_vol(sim_baseline, age = 16)
 t16 <- attr(mv, "totals")
-bars <- c(`Veneer >=25cm` = unname(t16["vol_veneer"]),
-          `Solid 14-25cm` = unname(t16["vol_solid"]),
-          `Pulp 8-14cm`   = unname(t16["vol_pulp"]),
+bars <- c(`Large sawlog`  = unname(t16["vol_large_sawlog"]),
+          `Small sawlog`  = unname(t16["vol_small_sawlog"]),
+          `Pulp`          = unname(t16["vol_pulp"]),
           `Top waste`     = unname(t16["top_waste"]))
+labels_under <- c(">=25 cm", "14-25 cm", "8-14 cm", "")
 bp <- barplot(bars, col = c("#3B7BCE", "#E08821", "#5FA85A", "grey70"),
               ylab = expression("Volume (m"^3*" ha"^-1*")"),
-              main = "Stand-level merch assortment at age 16 (550 TPH)",
+              main = "Stand-level merch assortment at age 16",
               ylim = c(0, max(bars) * 1.18))
 text(bp, bars + max(bars) * 0.04, sprintf("%.0f", bars), cex = 0.95)
+mtext(labels_under, side = 1, at = bp, line = 2.2, cex = 0.85,
+      col = "grey30")
 par(op); dev.off()
 
 
 # --- 4. Biomass / carbon / CO2 trajectory --------------------------------------
 png_open("biomass-trajectory.png", w = 1200, h = 800)
-sim <- inia_add_biomass(sim)
+sim_biom <- inia_add_biomass(sim_baseline)
 op <- par(mar = c(4.2, 4.2, 2.5, 4.5))
-with(sim$trajectory, {
+with(sim_biom$trajectory, {
   plot(age, Biomasa, type = "l", lwd = 2, col = "darkgreen",
        xlab = "Age (years)", ylab = "Biomass (t/ha)",
-       main = "Aboveground biomass and CO2 stock (Zone 7, SI = 30, 550 TPH)",
+       main = "Aboveground biomass and CO2 stock (Zone 7, SI = 28)",
        ylim = c(0, max(Biomasa) * 1.05))
   par(new = TRUE)
   plot(age, CO2eq, type = "l", lwd = 2, col = "steelblue", lty = 2,
@@ -101,13 +108,13 @@ data(sag_validation, package = "egrandis")
 ref <- sag_validation$z7_si30_n550
 args <- ref$inputs; args$DAP_medio0 <- NULL
 args$t0 <- 1; args$t_end <- 16
-sim <- do.call(simulate_inia, args)
+sim_v <- do.call(simulate_inia, args)
 plot(ref$trajectory$age, ref$trajectory$Vol_Total,
      pch = 19, col = "black",
      xlab = "Age (years)", ylab = expression("Volume (m"^3*" ha"^-1*")"),
-     main = "egrandis vs SAG 2021 (Z7, SI=30, 550 TPH unthinned)",
-     ylim = range(c(ref$trajectory$Vol_Total, sim$trajectory$Vol_Total)))
-lines(sim$trajectory$age, sim$trajectory$Vol_Total,
+     main = "egrandis vs SAG 2021 reference scenario",
+     ylim = range(c(ref$trajectory$Vol_Total, sim_v$trajectory$Vol_Total)))
+lines(sim_v$trajectory$age, sim_v$trajectory$Vol_Total,
       col = "firebrick", lwd = 2)
 legend("bottomright", c("SAG 2021 (reference)", "egrandis simulate_inia"),
        col = c("black", "firebrick"), pch = c(19, NA), lty = c(NA, 1),

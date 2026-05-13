@@ -84,13 +84,13 @@ test_that("inia_merch_vol returns shape and sane totals", {
   mv <- inia_merch_vol(sim, age = 16)
   expect_s3_class(mv, "data.frame")
   expect_true(all(c("class_mid", "freq", "H_class", "vol_total",
-                    "vol_veneer", "vol_solid", "vol_pulp",
+                    "vol_large_sawlog", "vol_small_sawlog", "vol_pulp",
                     "vol_top_waste") %in% names(mv)))
 
   totals <- attr(mv, "totals")
   # Sum of per-product volumes plus top waste should equal total volume.
-  parts_sum <- totals["vol_veneer"] + totals["vol_solid"] +
-               totals["vol_pulp"]   + totals["top_waste"]
+  parts_sum <- totals["vol_large_sawlog"] + totals["vol_small_sawlog"] +
+               totals["vol_pulp"]         + totals["top_waste"]
   expect_equal(unname(parts_sum), unname(totals["total"]),
                tolerance = 0.01)
 
@@ -112,7 +112,8 @@ test_that("inia_merch_vol respects custom product specs", {
   totals <- attr(mv, "totals")
   expect_true("vol_saw"  %in% names(totals))
   expect_true("vol_pulp" %in% names(totals))
-  expect_false("vol_veneer" %in% names(totals))
+  # Default product names should not leak in when a custom list is passed.
+  expect_false("vol_large_sawlog" %in% names(totals))
 })
 
 test_that("inia_merch_vol errors on missing age", {

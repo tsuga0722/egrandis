@@ -17,9 +17,9 @@ Print a formatted summary of an INIA simulation
 }
 \examples{
 sim <- simulate_inia(
-  SI = 30, N0 = 550, G0 = 1.7,
-  Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-  t0 = 1, t_end = 16, zone = 7
+  SI = 28, N0 = 900, G0 = 7.0,
+  Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+  t0 = 2, t_end = 16, zone = 7
 )
 inia_print_summary(sim)
 }

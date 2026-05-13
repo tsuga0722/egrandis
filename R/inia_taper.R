@@ -291,9 +291,10 @@ inia_height_class <- function(D, Dq, Hd, k = 0.5, cap = 1.05) {
 #' @param age Target age (must appear in `sim$trajectory$age`).
 #' @param products Named list. Each element is a list with `d_min` (cm)
 #'   -- the small-end diameter for that product. Order does not matter:
-#'   products are sorted internally by `d_min` descending. If `NULL`, the
-#'   default assortment `list(veneer = list(d_min = 25), solid = list(d_min = 14),
-#'   pulp = list(d_min = 8))` is used.
+#'   products are sorted internally by `d_min` descending. If `NULL`, a
+#'   default assortment of three generic solid-wood grades is used:
+#'   `large_sawlog` (>= 25 cm), `small_sawlog` (>= 14 cm), and `pulp`
+#'   (>= 8 cm). Pass any custom list to define market-specific products.
 #' @param hb Stump height (m). Default 0.10.
 #' @param hd_k Power-law exponent passed to [inia_height_class()] for
 #'   estimating per-diameter-class total height. Default 0.5.
@@ -305,9 +306,9 @@ inia_height_class <- function(D, Dq, Hd, k = 0.5, cap = 1.05) {
 #'   limit and the tip).
 #' @examples
 #' sim <- simulate_inia(
-#'   SI = 30, N0 = 550, G0 = 1.7,
-#'   Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-#'   t0 = 1, t_end = 16, zone = 7
+#'   SI = 28, N0 = 900, G0 = 7.0,
+#'   Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+#'   t0 = 2, t_end = 16, zone = 7
 #' )
 #' mv <- inia_merch_vol(sim, age = 16)
 #' attr(mv, "totals")
@@ -316,9 +317,9 @@ inia_merch_vol <- function(sim, age, products = NULL, hb = 0.10,
                            hd_k = 0.5) {
   if (is.null(products)) {
     products <- list(
-      veneer = list(d_min = 25),
-      solid  = list(d_min = 14),
-      pulp   = list(d_min = 8)
+      large_sawlog = list(d_min = 25),
+      small_sawlog = list(d_min = 14),
+      pulp         = list(d_min = 8)
     )
   }
   # Sort products by d_min descending so butt-up bucking works.

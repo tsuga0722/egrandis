@@ -31,5 +31,5 @@ maximum diameter, and diameter SD, then returns per-class frequencies
 and basal area per hectare.
 }
 \examples{
-inia_diam_dist(N = 364, Dq = 38.3, dmax = 49.2, SDd = 6.1)
+inia_diam_dist(N = 700, Dq = 28.0, dmax = 35.0, SDd = 4.5)
 }

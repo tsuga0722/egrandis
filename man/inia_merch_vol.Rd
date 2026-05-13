@@ -13,9 +13,10 @@ inia_merch_vol(sim, age, products = NULL, hb = 0.1, hd_k = 0.5)
 
 \item{products}{Named list. Each element is a list with `d_min` (cm)
 -- the small-end diameter for that product. Order does not matter:
-products are sorted internally by `d_min` descending. If `NULL`, the
-default assortment `list(veneer = list(d_min = 25), solid = list(d_min = 14),
-pulp = list(d_min = 8))` is used.}
+products are sorted internally by `d_min` descending. If `NULL`, a
+default assortment of three generic solid-wood grades is used:
+`large_sawlog` (>= 25 cm), `small_sawlog` (>= 14 cm), and `pulp`
+(>= 8 cm). Pass any custom list to define market-specific products.}
 
 \item{hb}{Stump height (m). Default 0.10.}
 
@@ -40,9 +41,9 @@ product takes the next section down to its limit, and so on.
 }
 \examples{
 sim <- simulate_inia(
-  SI = 30, N0 = 550, G0 = 1.7,
-  Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-  t0 = 1, t_end = 16, zone = 7
+  SI = 28, N0 = 900, G0 = 7.0,
+  Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+  t0 = 2, t_end = 16, zone = 7
 )
 mv <- inia_merch_vol(sim, age = 16)
 attr(mv, "totals")

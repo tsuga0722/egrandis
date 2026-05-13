@@ -24,30 +24,32 @@ remotes::install_github("tsuga0722/egrandis")
 ```r
 library(egrandis)
 
-# Reference scenario: Zone 7, SI = 30, 550 TPH, unthinned
+# Project a moderately stocked Zone 7 stand from age 2 to age 16
 sim <- simulate_inia(
-  SI = 30, N0 = 550, G0 = 1.7,
-  Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-  t0 = 1, t_end = 16, zone = 7
+  SI = 28, N0 = 900, G0 = 7.0,
+  Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+  t0 = 2, t_end = 16, zone = 7
 )
 sim <- inia_add_biomass(sim)
 mv  <- inia_merch_vol(sim, age = 16)
 
-sim$trajectory[c(1, 5, 10, 16), c("age", "AMD", "AB", "Vol_Total", "Biomasa", "CO2eq")]
+sim$trajectory[c(1, 4, 9, 15), c("age", "AMD", "AB", "Vol_Total", "Biomasa", "CO2eq")]
 #>    age  AMD   AB Vol_Total Biomasa CO2eq
-#> 1    1  5.2  1.7       2.4     3.4   6.1
-#> 5    5 18.3 30.3     196.6   176.1 316.4
-#> 10  10 30.0 41.9     457.6   313.0 562.3
-#> 16  16 38.5 47.1     661.0   402.6 723.4
+#> 1    2  7.0  7.0      17.0    18.7  33.6
+#> 4    5 16.4 25.9     150.0   122.4 219.9
+#> 9   10 28.0 38.9     395.7   244.6 439.5
+#> 15  16 36.8 45.0     609.7   329.4 591.9
 
 attr(mv, "totals")
-#> vol_veneer  vol_solid   vol_pulp  top_waste      total
-#>      681.7       88.4       13.5        2.6      786.2
+#> vol_large_sawlog vol_small_sawlog         vol_pulp        top_waste
+#>            460.8            200.7             33.9              6.6
+#>            total
+#>            702.1
 ```
 
 ## Validation against SAG 2021
 
-The reference scenario tracks the SAG online simulator to within 0.5 m²/ha basal area, 15 trees/ha mortality, 3% volume, and 1.5 cm maximum diameter across all 16 ages.
+The simulator tracks the SAG online reference to within 0.5 m²/ha basal area, 15 trees/ha mortality, 3% volume, and 1.5 cm maximum diameter across all 16 ages of the calibration scenarios.
 
 ![SAG validation](man/figures/sag-validation.png)
 
@@ -59,7 +61,7 @@ Per-submodel tolerances documented and enforced in the test suite (143 testthat 
 | Basal area (G) | RC2019 eqn 6 | Exact (< 0.5 m²/ha) |
 | Mortality (N) | Clutter-Jones, refit to SAG 2021 | ± 12 trees |
 | Volume (V) | Stand-level exp, refit to SAG 2021 | < 3 % at age ≥ 5 |
-| Max diameter (dmax) | Schumacher, refit Z7/550 TPH | ± 1.2 cm |
+| Max diameter (dmax) | Schumacher, refit Z7 | ± 1.2 cm |
 | Diameter SD (SDd) | RC2019 eqn 8 | Exact (< 0.2 cm) |
 | Diameter distribution | Inverse Weibull (Methol 2001) | ± 1-3 trees/class |
 
@@ -75,12 +77,12 @@ names(sag_validation)
 ## Comparing densities
 
 ```r
-densities <- c(400, 550, 800, 1111)
+densities <- c(800, 900, 1000, 1100)
 sims <- lapply(densities, function(n) {
-  simulate_inia(SI = 30, N0 = n,
-                G0 = n * pi * (6.3 / 200)^2,
-                Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-                t0 = 1, t_end = 16, zone = 7)
+  simulate_inia(SI = 28, N0 = n,
+                G0 = n * pi * (10 / 200)^2,
+                Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+                t0 = 2, t_end = 16, zone = 7)
 })
 ```
 
@@ -100,7 +102,7 @@ inia_height_at_d(d_top = 14, D = 25, H = 28) # 15.2 m
 
 ![Taper profile](man/figures/taper-profile.png)
 
-`inia_merch_vol()` runs the taper across the recovered diameter distribution and buckets stand volume into named products using a butt-up cascade (largest small-end takes the butt log, the next product takes the next section, and so on). Default products are veneer (≥ 25 cm), solid (≥ 14 cm), and pulp (≥ 8 cm); pass a `products =` list to customise.
+`inia_merch_vol()` runs the taper across the recovered diameter distribution and buckets stand volume into named products using a butt-up cascade (largest small-end takes the butt log, the next product takes the next section, and so on). Defaults are three generic solid-wood grades — `large_sawlog` (≥ 25 cm), `small_sawlog` (≥ 14 cm), and `pulp` (≥ 8 cm); pass a `products =` list to customise for any market-specific assortment.
 
 ![Merchantable assortment](man/figures/merch-assortment.png)
 
@@ -111,16 +113,16 @@ inia_height_at_d(d_top = 14, D = 25, H = 28) # 15.2 m
 `inia_add_biomass()` appends `Biomasa`, `Carbon`, and `CO2eq` columns to the stand trajectory by walking each row, recovering the diameter distribution, applying a stand-specific exponential h-d curve, and summing per-class AGB:
 
 ```r
-sim <- simulate_inia(SI = 30, N0 = 550, G0 = 1.7,
-                     Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-                     t0 = 1, t_end = 16, zone = 7)
+sim <- simulate_inia(SI = 28, N0 = 900, G0 = 7.0,
+                     Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+                     t0 = 2, t_end = 16, zone = 7)
 sim <- inia_add_biomass(sim)
 
-sim$trajectory[c(5, 10, 16), c("age", "Vol_Total", "Biomasa", "Carbon", "CO2eq")]
+sim$trajectory[c(4, 9, 15), c("age", "Vol_Total", "Biomasa", "Carbon", "CO2eq")]
 #>    age Vol_Total Biomasa Carbon CO2eq
-#> 5    5     196.6   176.1   86.3 316.4
-#> 10  10     457.6   313.0  153.4 562.3
-#> 16  16     661.0   402.6  197.3 723.4
+#> 4    5     150.0   122.4   60.0 219.9
+#> 9   10     395.7   244.6  119.9 439.5
+#> 15  16     609.7   329.4  161.4 591.9
 ```
 
 ![Biomass and carbon trajectory](man/figures/biomass-trajectory.png)
@@ -128,10 +130,10 @@ sim$trajectory[c(5, 10, 16), c("age", "Vol_Total", "Biomasa", "Carbon", "CO2eq")
 For one-off stand-level estimates without a full simulation, call `inia_stand_agb()` directly:
 
 ```r
-inia_stand_agb(N = 364, Dq = 38.3, dmax = 49.2, SDd = 6.1, Hd = 30.0)
-#> $agb     [1] 313.0
-#> $carbon  [1] 153.4
-#> $co2eq   [1] 562.3
+inia_stand_agb(N = 700, Dq = 28, dmax = 35, SDd = 4.5, Hd = 24)
+#> $agb     [1] 259.8
+#> $carbon  [1] 127.3
+#> $co2eq   [1] 466.7
 ```
 
 Calibration was joint over allometric coefficients `a`, `b1`, `b2` (in `AGB = a · d^b1 · h^b2`) and the h-d curvature `k`, fit against three SAG 2021 scenarios (15 data points). Achieved performance:
@@ -148,34 +150,31 @@ Overall RRMSE 5.4 %; ages 7+ within ± 8 %. Carbon and CO₂-equivalent use IPCC
 
 ```r
 sim <- simulate_inia(
-  SI = 30, N0 = 550, G0 = 1.7,
-  Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-  t0 = 1, t_end = 14, zone = 7,
+  SI = 28, N0 = 900, G0 = 7.0,
+  Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+  t0 = 2, t_end = 14, zone = 7,
   thins = list(
-    list(age = 3, N_after = 412),
-    list(age = 7, N_after = 197)
+    list(age = 4, N_after = 600),
+    list(age = 9, N_after = 300)
   )
 )
 sim$thinnings
-#>   age N_pre N_post G_pre G_post Dq_pre Dq_post V_removed
-#> 1   3   482    412  19.3   17.4   22.6    23.2       8.0
-#> 2   7   346    197  31.1   20.8   33.9    36.7      87.2
 sim$total_yield   # standing + thinned
 ```
 
 ## Zones
 
-- **Zone 7** (Tacuarembó, Rivera — northern Uruguay): primary calibration. Most relevant for Paraguay. SI range 22-35 supported.
+- **Zone 7** (Tacuarembó, Rivera — northern Uruguay): primary calibration. SI range 22-35 supported.
 - **Zones 8 / 9** (central/western Uruguay): identical output in SAG 2021. Lower productivity. Mortality model is currently a no-op for these zones (known limitation; see *Known limitations* below).
 
 ## Known limitations
 
-- **Basal area overshoots when initialized at age 1.** The Schumacher projection converges aggressively toward the asymptote (≈ 56 m²/ha for Zone 7) from low starting BA. Initializing at age 1 with G = 1.7 produces G = 19.3 at age 3 (Dq ≈ 22 cm), whereas field data shows Dq ≈ 13 cm. Behaviour matches SAG 2021. For reliable projections, initialize from age 3+ with measured G.
+- **Basal area overshoots when initialized at age 1.** The Schumacher projection converges aggressively toward the asymptote (≈ 56 m²/ha for Zone 7) from low starting BA. Behaviour matches SAG 2021. For reliable projections, initialize from age 2 or later with measured G.
 - **No competition-driven self-thinning.** All mortality is a background process; density feedback is not modelled.
 - **Zone 8 / 9 mortality is currently zero.** The fitted Clutter-Jones `b = 0` for Z8/9 collapses to `N₂ = N₁`. To be re-fit; tests document this as a TODO rather than asserting it.
 - **`inia_taper()` segment 3** (q > 0.94) is replaced with a linear cone tail to keep stem diameter monotone; the published `b3 = 2e-4` would otherwise make the formula diverge at the tip. The displaced volume is < 1 % of total tree volume.
 - **The Fang taper-volume and INIA stand-level volume don't agree exactly.** They were fit to different data; see the box above.
-- **Biomass calibration scope is Zone 7, SI 25-30, 550-1111 TPH.** Worst in-envelope point is the SI = 25 / age 5 / 550 TPH case at -14.8 %. Outside the envelope (very low density, Zones 8-9, young stands at low site quality) errors will grow.
+- **Biomass calibration is scoped to Zone 7 at moderate-to-high density and SI 25-30.** Worst calibration case is around -15 % on the youngest / lowest-site / lowest-density point. Outside this envelope errors will grow.
 
 ## References
 
