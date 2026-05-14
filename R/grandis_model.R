@@ -211,3 +211,28 @@ grandis_n <- function(N1, t1, t2, SI, G,
 
   (1 - weight) * N_bg + weight * N_at_ceil
 }
+
+
+# Stand-level under-bark volume (m^3/ha) via Fang taper x recovered
+# inverse-Weibull diameter distribution. Reuses INIA's diameter-recovery,
+# h-d, and Fang total-volume helpers. Multiplies the over-bark integration
+# by `bark_factor` (default 0.82 for E. grandis) to give an under-bark
+# volume comparable to INIA's stand-level Vol_Total.
+grandis_vol <- function(G, N, Hd, dmax, SDd, bark_factor = NULL) {
+  if (is.null(bark_factor)) bark_factor <- .grandis_params$volume$bark_factor
+  if (G <= 0.01 || N <= 0) return(0)
+
+  Dq <- sqrt(G / N * 40000 / pi)
+  if (Dq <= 0.1) return(0)
+
+  dd <- inia_diam_dist(N = N, Dq = Dq, dmax = dmax, SDd = SDd)
+  if (nrow(dd) == 0) return(0)
+
+  h_class <- inia_height_class(dd$class_mid, Dq = Dq, Hd = Hd)
+  v_per_tree <- vapply(seq_len(nrow(dd)), function(i) {
+    if (h_class[i] <= 1.3 || dd$class_mid[i] <= 0) return(0)
+    inia_tree_total_vol(D = dd$class_mid[i], H = h_class[i])
+  }, numeric(1))
+
+  sum(dd$freq * v_per_tree) * bark_factor
+}
