@@ -16,6 +16,7 @@ remotes::install_github("tsuga0722/egrandis")
 | Module | Public API | Calibration |
 |---|---|---|
 | **Stand simulator (INIA SAG grandis 2021)** | `simulate_inia()`, `inia_diam_dist()`, `inia_get_distribution()`, `inia_print_summary()`, `inia_dmd_plot()` | Validated against the SAG online simulator at sag.inia.uy. 5 reference scenarios bundled as `sag_validation`. |
+| **Augmented simulator (`simulate_grandis()`)** | `simulate_grandis()` | RC2019 augmented equations (PASW + Elev + slope + aspect predictors) for Hd / G / dmax / SDd; Methol 2003 mortality with SI-dependent `a`; Reineke / Drew-Flewelling soft-logistic self-thinning; Fang × Weibull volume. Trajectory schema matches `simulate_inia()`; per-call `sim$provenance` documents every submodel. Designed for local PSP refit. |
 | **Taper + merchantable volume (Fang 2000)** | `inia_taper()`, `inia_tree_total_vol()`, `inia_tree_vol()`, `inia_height_at_d()`, `inia_height_class()`, `inia_merch_vol()` | Coefficients from Hirigoyen et al. 2021 (felled-tree measurements, Uruguay). |
 | **Aboveground biomass + carbon** | `inia_tree_stem()`, `inia_tree_branches()`, `inia_tree_agb()`, `inia_tree_height()`, `inia_stand_agb()`, `inia_add_biomass()` | Winck et al. 2015 (*Ciencia Florestal* 25(3): 595–606) prediction models for E. grandis in NE Argentina (n=41 trees, ages 4–32 yr). IPCC default carbon fraction 0.49. |
 
@@ -53,7 +54,7 @@ The simulator tracks the SAG online reference to within 0.5 m²/ha basal area, 1
 
 ![SAG validation](man/figures/sag-validation.png)
 
-Per-submodel tolerances documented and enforced in the test suite (205 testthat checks total):
+Per-submodel tolerances documented and enforced in the test suite (334 testthat checks total):
 
 | Submodel | Source | Achieved tolerance vs SAG |
 |---|---|---|
@@ -123,6 +124,34 @@ inia_dmd_plot(sim_thinned)
 The trajectory data frame also carries an `RD` column (`SDI / SDImax`) for direct numerical comparisons.
 
 > The INIA basal-area submodel has no density term, so the DMD here is descriptive on top of the model — it shows where the stand sits relative to literature stocking limits, but `simulate_inia()` does not slow `G` as `RD` rises. Use `RD` as a thinning trigger rather than a model-derived growth-suppression signal.
+
+## The augmented simulator: `simulate_grandis()`
+
+`simulate_grandis()` is a second whole-stand simulator built on the literature-faithful augmented equations of Rachid-Casnati, Mason & Woollons (2019) for Hd / G / dmax / SDd; Methol 2003 mortality with SI-dependent `a`; a Reineke / Drew-Flewelling soft-logistic ceiling for self-thinning; and Fang × Weibull volume integration. The trajectory schema matches `simulate_inia()` so downstream tools (`inia_merch_vol()`, `inia_add_biomass()`, `inia_dmd_plot()`) work unchanged.
+
+Choose `simulate_grandis()` when you need (a) site-specific predictions parameterised by continuous variables instead of a zone dummy, (b) coverage outside the SAG 2021 validation envelope (lower densities, longer rotations), or (c) explicit per-submodel provenance citations on every run.
+
+```r
+sim <- simulate_grandis(
+  SI    = 28,    N0   = 900,  G0    = 7,
+  PASW  = 130,   Elev = 130,  slope = 5,  aspect = pi/4,  # NE-facing 5%
+  t0    = 2,     t_end = 20,
+  thins = list(list(age = 8, N_after = 450))
+)
+sim$total_yield
+#> [1] 473.9
+
+sim$provenance$submodels[c("Hd", "N_self_thin")]
+#> $Hd
+#> [1] "RC2019 Eqn 11 (Tab S4 row 11) -- PASW + alpha_c + alpha_s; Uruguay PSPs"
+#>
+#> $N_self_thin
+#> [1] "Reineke (1933) + Drew & Flewelling (1979) soft-logistic; SDImax=1250 (Rachid-Casnati et al. 2024)"
+```
+
+Every run carries a `sim$provenance` element with a per-submodel source citation, the disclosed approximations (Uruguay calibration envelope, conventional Reineke threshold, bark factor 0.82), and an echo of the run inputs.
+
+> The augmented simulator is calibrated on Uruguay PSPs (RC2019, 305 plots, ages 2–11). Predictions outside that envelope are extrapolations. The Reineke `RD_50 = 0.60` and `mort_k = 12` defaults are literature-conventional rather than species-fitted. `simulate_grandis()` is designed for local refit when permanent-plot data are available.
 
 ## Taper and merchantable volume
 
