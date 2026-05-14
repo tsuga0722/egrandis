@@ -8,4 +8,5 @@ inst/doc/
 vignettes/*.html
 .claude/
 CLAUDE.md
+data-raw/papers/
 
