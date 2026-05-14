@@ -2,13 +2,23 @@
 # INIA E. grandis 2021 - submodel functions and parameters
 #
 # Faithful reproduction of the SAG grandis 2021 online simulator
-# (https://sag.inia.uy). Per-submodel validation status is summarised in
-# the package README.
+# (https://sag.inia.uy). Per-submodel literature provenance audit (May 2026)
+# is documented in CLAUDE.md "May 2026 deep-audit summary".
+#
+# Summary of submodel provenance after audit:
+#   EXACT match to published source: Hd, G, SDd, Gpost, Weibull recovery
+#   SAG-2021-refit (form from literature, coefficients re-derived): N, V, dmax
 #
 # References:
 #   Rachid-Casnati C, Mason E, Woollons R (2019). iForest 12: 237-245.
+#     Hd (Eqn 5 / Tab S4), G (Eqn 6 / Tab S5), dmax form (Eqn 7),
+#     SDd (Eqn 8 / Tab S7).
 #   Methol R (2003). INIA Serie Tecnica 131.
+#     Gpost (Eqn 9), Weibull pdf and recovery (Eqns 10-11, 16-18).
 #   Methol R (2001). PhD thesis, University of Canterbury.
+#     CITASS grandis VBA implementation (different mortality and volume forms
+#     than Methol 2003 documents -- the docs and code diverged even at that
+#     vintage).
 # ------------------------------------------------------------------------------
 
 
@@ -22,27 +32,36 @@
   # G: RC2019 eqn 6 (Schumacher(2) + thinning modifier)
   g = list(a0 = 3.7534, a1 = 0.27345, c0 = 1.07956, c1 = -0.93323),
 
-  # N: Clutter-Jones, refit to SAG 2021 output (zone-specific).
-  # Z7 max abs err ~12 trees vs SAG. Z8/9 mortality has a humped shape that
-  # the monotonic Clutter-Jones form cannot fully capture; sane parameter
-  # regime fit gives max abs err ~20 trees.
+  # N: Clutter-Jones FORM (Methol 2003 Eqn 6), but coefficients REFIT to
+  # SAG 2021 output -- the SAG 2021 system removed the site-dependent `a`
+  # that Methol 2003 documented and also diverges from Methol's own 2001
+  # CITASS VBA implementation. See CLAUDE.md "deep-audit summary".
+  # Z7 max abs err ~12 trees vs SAG; Z8/9 ~20 trees (humped per-year-loss
+  # shape that the monotonic Clutter-Jones form cannot fully fit).
   n_z7  = list(a = -0.006319,  b = 0.003436,  c = 0.5669),
   n_z89 = list(a = -0.199951,  b = 0.017897,  c = 0.955840),
 
-  # V: stand-level exponential, refit to SAG 2021 output
+  # V: stand-level Schumacher-Hall FORM (Methol 2003 Eqn 7), but
+  # coefficients REFIT to SAG 2021 output. Note the b2 sign-flip between
+  # Methol 2003 (b2 = -0.0761) and SAG 2021 refit (b2 = +0.104) -- this
+  # is a real recalibration in SAG 2021, not an implementation bug.
   v = list(b0 = -1.1317, b1 = 1.0045, b2 = 0.1040, b3 = -0.0167),
 
-  # Gpost: SAG 2003 eqn 9 (empirical thinning BA reduction)
+  # Gpost: Methol 2003 Eqn 9 (empirical thinning BA reduction). EXACT match.
   gpost = list(a = 1.1499, b = 0.9356, c = 1.5167, d = 0.9887),
 
-  # dmax: Schumacher, refit to SAG 2021 output. Zone-specific.
+  # dmax: RC2019 Eqn 7 FORM (Schumacher), coefficients REFIT to SAG 2021.
+  # RC2019 published values for Z7 (a0=4.269, a1=1.147, c0=0.454, c1=-0.159)
+  # underestimate SAG 2021 dmax by 4-8 cm. Methol 2003 Eqn 14 used a
+  # different (more complex) von Bertalanffy-Richards form with SI and N0
+  # dependence; SAG 2021 simplified to the RC2019 form and re-fit.
   dmax_z7  = list(A = 4.760478, C = 0.495837),
   dmax_z89 = list(A = 4.055992, C = 0.650911),
 
   # SDd: RC2019 eqn 8 (von Bertalanffy-Richards)
   sdd = list(a0 = 9.230291, a1 = 2.424718, b = 0.054145),
 
-  # Inverse Weibull polynomial coefficients (SAG 2003 eqn 18)
+  # Inverse Weibull polynomial coefficients (Methol 2003 Eqn 18). EXACT match.
   weibull_kz = c(-0.22004032, -0.001433169, 0.150611381,
                  -0.078575996,  0.004305716, 0.008804944),
 
