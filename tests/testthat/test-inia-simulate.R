@@ -66,3 +66,13 @@ test_that("integration: high density (1111 TPH) trajectory tracks SAG", {
   expect_lt(max(abs(sim$AB  - ref$AB )), 0.5)
   expect_lt(max(abs(sim$N   - ref$N  )), 15)
 })
+
+test_that("integration: Zone 8 trajectory tracks SAG", {
+  data(sag_validation, package = "egrandis")
+  out <- run_scenario("z8_si30_n550")
+  sim <- out$sim_traj; ref <- out$ref_traj
+  expect_lt(max(abs(sim$AMD - ref$AMD)),  0.2)
+  expect_lt(max(abs(sim$AB  - ref$AB )),  0.6)
+  expect_lt(max(abs(sim$N   - ref$N  )), 25)
+  expect_lt(max(abs(sim$DAP_max - ref$DAP_max)), 1.0)
+})

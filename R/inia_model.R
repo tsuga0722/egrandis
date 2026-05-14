@@ -22,9 +22,12 @@
   # G: RC2019 eqn 6 (Schumacher(2) + thinning modifier)
   g = list(a0 = 3.7534, a1 = 0.27345, c0 = 1.07956, c1 = -0.93323),
 
-  # N: Clutter-Jones, refit to SAG 2021 output (zone-specific)
+  # N: Clutter-Jones, refit to SAG 2021 output (zone-specific).
+  # Z7 max abs err ~12 trees vs SAG. Z8/9 mortality has a humped shape that
+  # the monotonic Clutter-Jones form cannot fully capture; sane parameter
+  # regime fit gives max abs err ~20 trees.
   n_z7  = list(a = -0.006319,  b = 0.003436,  c = 0.5669),
-  n_z89 = list(a = -20.951726, b = 0.000000,  c = 5.4819),
+  n_z89 = list(a = -0.199951,  b = 0.017897,  c = 0.955840),
 
   # V: stand-level exponential, refit to SAG 2021 output
   v = list(b0 = -1.1317, b1 = 1.0045, b2 = 0.1040, b3 = -0.0167),
@@ -32,8 +35,9 @@
   # Gpost: SAG 2003 eqn 9 (empirical thinning BA reduction)
   gpost = list(a = 1.1499, b = 0.9356, c = 1.5167, d = 0.9887),
 
-  # dmax: Schumacher, refit to SAG 2021 output (only Zone 7 fitted)
-  dmax_z7 = list(A = 4.760478, C = 0.495837),
+  # dmax: Schumacher, refit to SAG 2021 output. Zone-specific.
+  dmax_z7  = list(A = 4.760478, C = 0.495837),
+  dmax_z89 = list(A = 4.055992, C = 0.650911),
 
   # SDd: RC2019 eqn 8 (von Bertalanffy-Richards)
   sdd = list(a0 = 9.230291, a1 = 2.424718, b = 0.054145),
@@ -112,9 +116,9 @@ inia_gpost <- function(Gant, Nant, Npost) {
   p$a * Gant^p$b * (1 - frac_removed^p$c)^p$d
 }
 
-# Project max diameter. Only Zone 7 calibrated.
+# Project max diameter. Zone-specific.
 inia_dmax <- function(dmax1, t1, t2, Z7 = 1) {
-  p <- .inia_params$dmax_z7
+  p <- if (Z7 == 1) .inia_params$dmax_z7 else .inia_params$dmax_z89
   R <- (t1 / t2)^p$C
   exp(log(max(dmax1, 0.1)) * R + p$A * (1 - R))
 }
