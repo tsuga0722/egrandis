@@ -8,6 +8,4 @@ inst/doc/
 vignettes/*.html
 .claude/
 CLAUDE.md
-BIOMASS_HANDOFF.md
-/inia_biomass.R
 

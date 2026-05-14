@@ -3,9 +3,9 @@ Type: Package
 Title: Growth and Yield Models for Eucalyptus grandis Clonal Plantations
 Version: 0.1.0
 Authors@R: c(
-    person("Your", "Name",
-           email = "you@example.com",
-           role = c("aut", "cre"))
+    person("tsuga0722",
+           role = c("aut", "cre"),
+           comment = c(GITHUB = "tsuga0722"))
   )
 Description: Simulates growth, mortality, thinning response, and yield in
     Eucalyptus grandis plantations across a range of management regimes,
