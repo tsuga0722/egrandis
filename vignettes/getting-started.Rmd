@@ -384,12 +384,12 @@ small residual (~2-4%) corresponds to leaves and fit noise.
 `simulate_grandis()` is a second whole-stand simulator that uses the
 literature-faithful augmented equations of Rachid-Casnati, Mason &
 Woollons (2019) for dominant height, basal area, max diameter, and
-diameter SD; Methol 2003 Eqn 6 for background mortality; a
-Reineke / Drew-Flewelling soft-logistic ceiling for self-thinning; and
-Fang taper × recovered Weibull integration for volume. The trajectory
-schema matches `simulate_inia()`, so the downstream tools
-(`inia_merch_vol()`, `inia_add_biomass()`, `inia_dmd_plot()`, etc.) work
-unchanged.
+diameter SD; a two-part mortality model (constant-rate exogenous
+background plus a Reineke / Drew-Flewelling soft-logistic ceiling for
+competition); and Fang taper × recovered Weibull integration for
+volume. The trajectory schema matches `simulate_inia()`, so the
+downstream tools (`inia_merch_vol()`, `inia_add_biomass()`,
+`inia_dmd_plot()`, etc.) work unchanged.
 
 When to choose `simulate_grandis()` over `simulate_inia()`:
 

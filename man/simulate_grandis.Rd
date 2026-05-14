@@ -19,6 +19,7 @@ simulate_grandis(
   t_end = 20,
   thins = NULL,
   dt = 1,
+  exo_rate = NULL,
   RD_ceiling = NULL,
   mort_k = NULL,
   bark_factor = NULL,
@@ -61,6 +62,11 @@ list with `age` (years) and `N_after` (trees/ha post-thin). Same
 shape as [simulate_inia()].}
 
 \item{dt}{Time step (years). Default 1.}
+
+\item{exo_rate}{Annual exogenous-mortality rate (fraction of trees
+lost per year to non-competition causes: wind, frost, drought,
+pests, lightning). Default `NULL` (uses `.grandis_params$mortality$exo_rate`
+= 0.005, i.e. 0.5%/year).}
 
 \item{RD_ceiling}{Reineke threshold for the soft-logistic
 self-thinning blend. Default `NULL` (uses `.grandis_params$reineke$RD_50`

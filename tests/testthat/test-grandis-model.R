@@ -98,30 +98,26 @@ test_that("grandis_sdd responds to East-West aspect", {
 
 # ---- Mortality: Methol 2003 Eqn 6 + Reineke ceiling -------------------------
 
-test_that("grandis_n_background gives sane mortality across the SI envelope", {
-  # Calibration range: SI 22-35 (Methol 2003's a = 0.4577 - 0.0218*SI is
-  # negative). Outside that range we clamp `a` to -0.005 to prevent the
-  # documented anti-mortality artefact at low SI.
-  for (SI in c(22, 25, 28, 30, 35)) {
-    N16 <- grandis_n_background(N1 = 900, t1 = 2, t2 = 16, SI = SI)
-    expect_lt(N16, 900, label = paste("mortality at SI =", SI))
-    expect_gt(N16,   0, label = paste("non-negative N at SI =", SI))
+test_that("grandis_n_background applies constant-rate exponential decay", {
+  # Default 0.5%/year, applied as N1 * exp(-rate * (t2 - t1)).
+  rate <- .grandis_params$mortality$exo_rate
+  for (dt in c(1, 5, 10, 14)) {
+    N2 <- grandis_n_background(N1 = 900, t1 = 2, t2 = 2 + dt)
+    expect_equal(N2, 900 * exp(-rate * dt), tolerance = 1e-8)
   }
 })
 
-test_that("grandis_n_background clamps a at SI < ~22 to prevent anti-mortality", {
-  # Below the clamp threshold, the formula must not produce N2 > N1.
-  for (SI in c(15, 18, 20, 21)) {
-    N16 <- grandis_n_background(N1 = 900, t1 = 2, t2 = 16, SI = SI)
-    expect_lte(N16, 900, label = paste("no anti-mortality at SI =", SI))
-  }
+test_that("grandis_n_background honors a user-supplied rate", {
+  N2 <- grandis_n_background(N1 = 900, t1 = 2, t2 = 12, rate = 0.02)
+  # 2%/year over 10 years -> ~82% survival
+  expect_equal(N2, 900 * exp(-0.02 * 10), tolerance = 1e-8)
 })
 
 test_that("grandis_n collapses to background when RD is very low", {
   # Low N + small G -> Dq small -> RD tiny -> Reineke weight ~ 0 ->
   # function returns ~ N_background.
-  N_bg <- grandis_n_background(N1 = 300, t1 = 2, t2 = 16, SI = 28)
-  N_w  <- grandis_n(N1 = 300, t1 = 2, t2 = 16, SI = 28, G = 5)
+  N_bg <- grandis_n_background(N1 = 300, t1 = 2, t2 = 16)
+  N_w  <- grandis_n(N1 = 300, t1 = 2, t2 = 16, G = 5)
   expect_equal(N_w, N_bg, tolerance = 0.5)
 })
 
@@ -132,8 +128,8 @@ test_that("grandis_n pulls N down toward Reineke ceiling at high RD", {
   # toward RD=0.60 but does not lock the post-mortality RD at that
   # value -- as N falls, Dq rises, partially restoring RD. The cap
   # below quantifies the resistance, not the equilibrium.
-  N_bg <- grandis_n_background(N1 = 1500, t1 = 2, t2 = 16, SI = 28)
-  N_w  <- grandis_n(N1 = 1500, t1 = 2, t2 = 16, SI = 28, G = 60)
+  N_bg <- grandis_n_background(N1 = 1500, t1 = 2, t2 = 16)
+  N_w  <- grandis_n(N1 = 1500, t1 = 2, t2 = 16, G = 60)
   expect_lt(N_w, N_bg)
   # Substantial extra mortality is applied: > 25% of N_bg is removed.
   expect_lt(N_w, N_bg * 0.75)

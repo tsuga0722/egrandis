@@ -16,7 +16,7 @@ remotes::install_github("tsuga0722/egrandis")
 | Module | Public API | Calibration |
 |---|---|---|
 | **Stand simulator (INIA SAG grandis 2021)** | `simulate_inia()`, `inia_diam_dist()`, `inia_get_distribution()`, `inia_print_summary()`, `inia_dmd_plot()` | Validated against the SAG online simulator at sag.inia.uy. 5 reference scenarios bundled as `sag_validation`. |
-| **Augmented simulator (`simulate_grandis()`)** | `simulate_grandis()` | RC2019 augmented equations (PASW + Elev + slope + aspect predictors) for Hd / G / dmax / SDd; Methol 2003 mortality with SI-dependent `a`; Reineke / Drew-Flewelling soft-logistic self-thinning; Fang × Weibull volume. Trajectory schema matches `simulate_inia()`; per-call `sim$provenance` documents every submodel. Designed for local PSP refit. |
+| **Augmented simulator (`simulate_grandis()`)** | `simulate_grandis()`, `compare_inia_grandis()`, `plot_inia_grandis_compare()` | RC2019 augmented equations (PASW + Elev + slope + aspect predictors) for Hd / G / dmax / SDd; constant-rate exogenous mortality (default 0.5%/yr) + Reineke / Drew-Flewelling soft-logistic self-thinning for competition; Fang × Weibull volume. Trajectory schema matches `simulate_inia()`; per-call `sim$provenance` documents every submodel. Designed for local PSP refit. |
 | **Taper + merchantable volume (Fang 2000)** | `inia_taper()`, `inia_tree_total_vol()`, `inia_tree_vol()`, `inia_height_at_d()`, `inia_height_class()`, `inia_merch_vol()` | Coefficients from Hirigoyen et al. 2021 (felled-tree measurements, Uruguay). |
 | **Aboveground biomass + carbon** | `inia_tree_stem()`, `inia_tree_branches()`, `inia_tree_agb()`, `inia_tree_height()`, `inia_stand_agb()`, `inia_add_biomass()` | Winck et al. 2015 (*Ciencia Florestal* 25(3): 595–606) prediction models for E. grandis in NE Argentina (n=41 trees, ages 4–32 yr). IPCC default carbon fraction 0.49. |
 
@@ -127,7 +127,7 @@ The trajectory data frame also carries an `RD` column (`SDI / SDImax`) for direc
 
 ## The augmented simulator: `simulate_grandis()`
 
-`simulate_grandis()` is a second whole-stand simulator built on the literature-faithful augmented equations of Rachid-Casnati, Mason & Woollons (2019) for Hd / G / dmax / SDd; Methol 2003 mortality with SI-dependent `a`; a Reineke / Drew-Flewelling soft-logistic ceiling for self-thinning; and Fang × Weibull volume integration. The trajectory schema matches `simulate_inia()` so downstream tools (`inia_merch_vol()`, `inia_add_biomass()`, `inia_dmd_plot()`) work unchanged.
+`simulate_grandis()` is a second whole-stand simulator built on the literature-faithful augmented equations of Rachid-Casnati, Mason & Woollons (2019) for Hd / G / dmax / SDd; a two-part mortality model (constant-rate exogenous background ~0.5 %/yr + Reineke / Drew-Flewelling soft-logistic ceiling for competition); and Fang × Weibull volume integration. The trajectory schema matches `simulate_inia()` so downstream tools (`inia_merch_vol()`, `inia_add_biomass()`, `inia_dmd_plot()`) work unchanged.
 
 Choose `simulate_grandis()` when you need (a) site-specific predictions parameterised by continuous variables instead of a zone dummy, (b) coverage outside the SAG 2021 validation envelope (lower densities, longer rotations), or (c) explicit per-submodel provenance citations on every run.
 

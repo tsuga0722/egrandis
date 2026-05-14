@@ -57,6 +57,10 @@
 #'   list with `age` (years) and `N_after` (trees/ha post-thin). Same
 #'   shape as [simulate_inia()].
 #' @param dt Time step (years). Default 1.
+#' @param exo_rate Annual exogenous-mortality rate (fraction of trees
+#'   lost per year to non-competition causes: wind, frost, drought,
+#'   pests, lightning). Default `NULL` (uses `.grandis_params$mortality$exo_rate`
+#'   = 0.005, i.e. 0.5%/year).
 #' @param RD_ceiling Reineke threshold for the soft-logistic
 #'   self-thinning blend. Default `NULL` (uses `.grandis_params$reineke$RD_50`
 #'   = 0.60).
@@ -106,6 +110,7 @@ simulate_grandis <- function(SI, N0, G0,
                              t0 = 1, t_end = 20,
                              thins = NULL,
                              dt = 1,
+                             exo_rate = NULL,
                              RD_ceiling = NULL,
                              mort_k = NULL,
                              bark_factor = NULL,
@@ -113,6 +118,7 @@ simulate_grandis <- function(SI, N0, G0,
 
   # Resolve defaults pulled from the params table
   rp <- .grandis_params$reineke
+  if (is.null(exo_rate))    exo_rate    <- .grandis_params$mortality$exo_rate
   if (is.null(RD_ceiling))  RD_ceiling  <- rp$RD_50
   if (is.null(mort_k))      mort_k      <- rp$mort_k
   if (is.null(bark_factor)) bark_factor <- .grandis_params$volume$bark_factor
@@ -156,7 +162,8 @@ simulate_grandis <- function(SI, N0, G0,
                         Na = aN, Nb = aNb, tt = att)
       # Mortality consumes the projected G to compute Dq for the
       # Reineke check; project N AFTER G.
-      N    <- grandis_n(N, tp, t, SI = SI, G = G,
+      N    <- grandis_n(N, tp, t, G = G,
+                        exo_rate = exo_rate,
                         RD_50 = RD_ceiling, mort_k = mort_k)
       dmax <- grandis_dmax(dmax, tp, t,
                            PASW = PASW, slope = slope, aspect = aspect)
@@ -230,11 +237,13 @@ simulate_grandis <- function(SI, N0, G0,
       SI = SI, N0 = N0, G0 = G0,
       PASW = PASW, Elev = Elev, slope = slope, aspect = aspect,
       t0 = t0, t_end = t_end, dt = dt, base_age = base_age,
+      exo_rate = exo_rate,
       RD_ceiling = RD_ceiling, mort_k = mort_k, bark_factor = bark_factor
     ),
     provenance = .grandis_provenance(
       SI = SI, N0 = N0, G0 = G0,
       PASW = PASW, Elev = Elev, slope = slope, aspect = aspect,
+      exo_rate = exo_rate,
       RD_ceiling = RD_ceiling, mort_k = mort_k, bark_factor = bark_factor,
       base_age = base_age
     )
@@ -253,7 +262,7 @@ simulate_grandis <- function(SI, N0, G0,
       G         = "RC2019 Eqn 12 (Tab S5 row 12) -- PASW + Elev; Uruguay PSPs",
       dmax      = "RC2019 Eqn 13 (Tab S6 row 13) -- PASW + alpha_s; Uruguay PSPs",
       SDd       = "RC2019 Eqn 14 (Tab S7 row 14) -- alpha_s; Uruguay PSPs",
-      N_bg      = "Methol 2003 Eqn 6 (Clutter-Jones, SI-dependent a); Uruguay PSPs",
+      N_bg      = "Constant-rate exogenous mortality (default 0.5%/year); user-overridable via `exo_rate`",
       N_self_thin = "Reineke (1933) + Drew & Flewelling (1979) soft-logistic; SDImax=1250 (Rachid-Casnati et al. 2024)",
       V         = "Fang taper (Hirigoyen 2021 iForest) integrated across recovered Weibull (Methol 2003)",
       Gpost     = "Methol 2003 Eqn 9 (empirical, reused from simulate_inia)",
@@ -261,8 +270,7 @@ simulate_grandis <- function(SI, N0, G0,
     ),
     caveats = c(
       "All growth submodels calibrated on Uruguay PSPs (Rachid-Casnati et al. 2019, 305 plots, ages 2-11). Predictions outside that envelope are extrapolations.",
-      "Methol 2003 mortality has a documented anti-mortality artefact below SI ~= 22 (a > 0). The implementation clamps `a` at -0.005 to suppress this; the SI > 22 calibration range is unaffected.",
-      "Reineke RD_50 and mort_k are literature-conventional, not species-fitted to E. grandis specifically.",
+      "Mortality has two parts: a constant-rate exogenous term (default 0.5%/year, density-independent) and a Reineke / Drew-Flewelling self-thinning ceiling. Both rates are user-overridable but not species-fitted.",
       "Bark factor 0.82 is a published mean for E. grandis; varies with tree size and can be overridden.",
       "No local PSP calibration has been applied. simulate_grandis() is designed for future refit when PSP data is available."
     ),

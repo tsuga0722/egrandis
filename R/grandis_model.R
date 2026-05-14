@@ -64,12 +64,20 @@
   # A = a0 + a1*alpha_s
   sdd = list(a0 = 8.863645,   a1 = 0.450453,   b = 0.069762),
 
-  # Background mortality (Methol 2003 Eqn 6, INIA Serie Tecnica 131).
-  # Clutter-Jones with SI-dependent a:
-  #   N2 = (N1^a + b * ((t2/10)^c - (t1/10)^c))^(1/a)
-  #   a  = a_intercept + a_slope * SI
-  mortality = list(a_intercept = 0.4577, a_slope = -0.0218,
-                   b = 0.00787, c = 1.0125),
+  # Exogenous background mortality: a constant annual rate that captures
+  # density-INDEPENDENT losses (wind, frost, drought, pests, lightning).
+  # Competition mortality is added on top via the Reineke ceiling below.
+  # Default 0.5%/year aligns with the residual mortality observed in
+  # well-managed E. grandis plantations once the density-driven component
+  # is accounted for (see e.g. Rachid-Casnati et al. 2024, which reports
+  # 16% mortality over 18.6 yr at 810 TPH unthinned, of which roughly
+  # half is density-driven).
+  # Methol 2003 Eqn 6 (Clutter-Jones with SI-dependent a) was evaluated
+  # as the background term but rejected: it double-counts competition
+  # because its 2003 calibration data already contained density effects,
+  # so layering Reineke on top produced implausible mortality (~78% in
+  # 11 years at high RD).
+  mortality = list(exo_rate = 0.005),
 
   # Reineke self-thinning ceiling. Drew & Flewelling (1979) lower limit
   # of self-thinning at RD = 0.60. SDImax = 1250 from Rachid-Casnati
@@ -158,33 +166,29 @@ grandis_sdd <- function(SDd1, t1, t2, slope = 0, aspect = 0) {
 }
 
 
-# Background mortality projection (Methol 2003 Eqn 6, Clutter-Jones with
-# SI-dependent a). Returns the projected N from t1 to t2 BEFORE any
-# Reineke self-thinning adjustment. SI is site index at the base age.
+# Background mortality projection: constant annual exogenous-mortality
+# rate, applied as continuous exponential decay. Returns the projected
+# N from t1 to t2 BEFORE any Reineke self-thinning adjustment.
 #
-# Methol 2003's published a = 0.4577 - 0.0218*SI crosses zero at
-# SI ~= 21, above which the formula behaves as a normal mortality
-# projection. Below that threshold, a is positive small and the
-# (...)^(1/a) term diverges to give "anti-mortality" (N2 > N1) -- an
-# artefact of fitting outside the calibration envelope. We clamp `a` to
-# a maximum of -0.005 to keep the function numerically well-behaved at
-# SI < 22; that corresponds to treating SI = 22 as a soft floor.
-grandis_n_background <- function(N1, t1, t2, SI) {
-  p <- .grandis_params$mortality
-  a <- min(p$a_intercept + p$a_slope * SI, -0.005)
-  val <- N1^a + p$b * ((t2 / 10)^p$c - (t1 / 10)^p$c)
-  if (val <= 0) return(0)
-  val^(1 / a)
+# `rate` is the fraction of trees lost to exogenous causes per year
+# (default 0.005 = 0.5%/year, taken from .grandis_params$mortality).
+# The continuous formulation makes the function time-step independent.
+grandis_n_background <- function(N1, t1, t2, rate = NULL) {
+  if (is.null(rate)) rate <- .grandis_params$mortality$exo_rate
+  if (N1 <= 0) return(0)
+  N1 * exp(-rate * (t2 - t1))
 }
 
 
-# Combined mortality with soft-logistic Reineke self-thinning ceiling.
-# Takes the background projection as N_bg (or computes it from N1/t1/t2/SI)
-# and the projected basal area G as inputs, derives the implied RD at the
-# new Dq, and blends N_bg toward the Reineke ceiling N_max(Dq) via a
-# logistic in (RD_bg - RD_50). At low RD the function returns ~N_bg;
-# at high RD it returns ~min(N_bg, N_ceiling).
-grandis_n <- function(N1, t1, t2, SI, G,
+# Combined mortality: constant-rate exogenous background + Reineke
+# self-thinning ceiling via soft logistic. The function applies the
+# exogenous decay first, then derives the implied RD at the new Dq
+# (computed from the projected G and the post-exogenous N), and
+# blends N_bg toward the Reineke ceiling N_max(Dq) via a logistic in
+# (RD_bg - RD_50). At low RD the function returns ~N_bg (pure
+# background); at high RD it returns ~min(N_bg, N_ceiling).
+grandis_n <- function(N1, t1, t2, G,
+                      exo_rate = NULL,
                       RD_50    = NULL,
                       mort_k   = NULL,
                       SDImax   = NULL,
@@ -197,7 +201,7 @@ grandis_n <- function(N1, t1, t2, SI, G,
   if (is.null(beta))    beta   <- rp$beta
   if (is.null(Dq_ref))  Dq_ref <- rp$Dq_ref
 
-  N_bg <- grandis_n_background(N1, t1, t2, SI)
+  N_bg <- grandis_n_background(N1, t1, t2, rate = exo_rate)
   if (N_bg <= 0 || G <= 0) return(N_bg)
 
   Dq_bg <- sqrt(G / N_bg * 40000 / pi)

@@ -192,16 +192,17 @@ test_that("At a Z7-matched site, INIA and grandis G agree within 15%", {
   expect_lt(abs(grd_g - inia_g) / inia_g, 0.15)
 })
 
-test_that("grandis enforces more mortality than INIA at high density", {
+test_that("grandis enforces more mortality than INIA at very high density", {
   # INIA mortality is SAG-calibrated and SI-independent; grandis adds
-  # the Reineke layer. At N0 = 1111 on a productive site, grandis
-  # should end with fewer trees.
-  inia <- simulate_inia(SI = 30, N0 = 1111, G0 = 3.5,
-                        Hd0 = 5.2, dmax0 = 8.0, SDd0 = 1.3,
-                        t0 = 2, t_end = 16, zone = 7)
-  grd  <- simulate_grandis(SI = 30, N0 = 1111, G0 = 3.5,
-                           PASW = 160, Elev = 130,
-                           t0 = 2, t_end = 16)
+  # the Reineke ceiling on top of the constant-rate background. At
+  # high enough density (N0 = 1500 here), the Reineke ceiling clearly
+  # bites harder than INIA's mortality and the end-N is much lower.
+  inia <- simulate_inia(SI = 32, N0 = 1500, G0 = 4.7,
+                        Hd0 = 5.5, dmax0 = 9, SDd0 = 1.4,
+                        t0 = 2, t_end = 20, zone = 7)
+  grd  <- simulate_grandis(SI = 32, N0 = 1500, G0 = 4.7,
+                           PASW = 170, Elev = 100,
+                           t0 = 2, t_end = 20)
   expect_lt(tail(grd$trajectory$N,  1),
             tail(inia$trajectory$N, 1))
 })
