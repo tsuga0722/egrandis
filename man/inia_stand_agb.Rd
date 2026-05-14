@@ -20,16 +20,24 @@ inia_stand_agb(N, Dq, dmax, SDd, Hd)
 \value{
 Named list rounded to 1 decimal place:
 \describe{
-  \item{`agb`}{Aboveground dry biomass (t/ha).}
+  \item{`agb`}{Total aboveground dry biomass (t/ha), from the
+    independently-fitted total-AGB equation.}
+  \item{`stem`}{Stem dry biomass (t/ha).}
+  \item{`branches`}{Branches dry biomass (t/ha).}
   \item{`carbon`}{Carbon (t C/ha) = `agb` * 0.49.}
   \item{`co2eq`}{CO2-equivalent (t CO2/ha) = `agb` * 1.797.}
 }
+Note: `stem + branches` does not necessarily equal `agb` exactly
+because the source-paper equations were fit independently rather
+than under an additivity constraint. The residual (~2-4%) corresponds
+to leaves and fit noise.
 }
 \description{
 Recovers the inverse Weibull diameter distribution from the supplied
 stand-level moments, estimates per-class height with
-[inia_tree_height()] and per-class biomass with [inia_tree_agb()],
-then sums to the stand level.
+[inia_tree_height()], computes per-class total / stem / branches
+biomass via the Winck et al. 2015 equations, and sums to the stand
+level.
 }
 \examples{
 # Stand at mid-rotation
@@ -41,6 +49,8 @@ inia_stand_agb(N = 700, Dq = 28.0, dmax = 35.0, SDd = 4.5, Hd = 24.0)
 Other biomass:
 \code{\link[=inia_add_biomass]{inia_add_biomass()}},
 \code{\link[=inia_tree_agb]{inia_tree_agb()}},
-\code{\link[=inia_tree_height]{inia_tree_height()}}
+\code{\link[=inia_tree_branches]{inia_tree_branches()}},
+\code{\link[=inia_tree_height]{inia_tree_height()}},
+\code{\link[=inia_tree_stem]{inia_tree_stem()}}
 }
 \concept{biomass}

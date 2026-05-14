@@ -51,14 +51,24 @@
   # (Rachid-Casnati et al. 2024).
   sdi = list(SDImax = 1250, beta = 1.605, Dq_ref = 25),
 
-  # Aboveground biomass module. Calibrated against SAG grandis 2021
-  # output (3 scenarios, 15 data points, RRMSE 5.4%). See R/inia_biomass.R.
+  # Aboveground biomass module. Tree-level prediction models from Winck
+  # et al. 2015 (Ciencia Florestal 25(3): 595-606) for E. grandis in NE
+  # Argentina (Misiones + Corrientes; n=41 destructively sampled trees,
+  # ages 4-32 yr, DBH 16.5-38.1 cm, h 18.4-51.0 m). Zone 1 (Misiones N/A,
+  # n=23, ages 4-32) is the default for its broader age range. Each
+  # equation is of the form B = fc * exp(b0 + b1*ln(d) + b2*ln(h)),
+  # where fc is the Meyer (1941) correction factor for the systematic
+  # bias of logarithmic regressions. Components were fit independently
+  # in the source paper (not via NSUR), so stem + branches != AGB
+  # exactly -- the residual (~2-4%) corresponds to leaves and fit noise.
+  # See R/inia_biomass.R.
   biomass = list(
-    # Tree-level AGB allometry: AGB(kg) = a * d^b1 * h^b2
-    tree_a  = 0.040403,
-    tree_b1 = 2.5094,
-    tree_b2 = 0.2362,
-    # Height-diameter saturation curve parameter
+    agb      = list(b0 = -3.36, b1 = 2.12, b2 =  0.65, fc = 1.01),
+    stem     = list(b0 = -4.51, b1 = 1.83, b2 =  1.22, fc = 1.01),
+    branches = list(b0 = -2.68, b1 = 3.73, b2 = -1.77, fc = 1.13),
+    # Height-diameter saturation curve parameter (operationally separate
+    # from the allometry above; used by inia_tree_height() to estimate
+    # per-class h from a recovered diameter distribution).
     hd_k = 0.1482,
     # IPCC subtropical hardwood carbon fraction; CO2eq factor = 0.49 * 44/12.
     carbon_fraction = 0.49,

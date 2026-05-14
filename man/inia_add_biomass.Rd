@@ -33,6 +33,8 @@ head(sim$trajectory[, c("age", "Vol_Total", "Biomasa", "Carbon", "CO2eq")])
 Other biomass:
 \code{\link[=inia_stand_agb]{inia_stand_agb()}},
 \code{\link[=inia_tree_agb]{inia_tree_agb()}},
-\code{\link[=inia_tree_height]{inia_tree_height()}}
+\code{\link[=inia_tree_branches]{inia_tree_branches()}},
+\code{\link[=inia_tree_height]{inia_tree_height()}},
+\code{\link[=inia_tree_stem]{inia_tree_stem()}}
 }
 \concept{biomass}

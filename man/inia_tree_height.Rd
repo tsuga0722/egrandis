@@ -13,8 +13,10 @@ inia_tree_height(d, Hd, dmax, k = .inia_params$biomass$hd_k)
 
 \item{dmax}{Maximum diameter in the stand (cm).}
 
-\item{k}{Curvature parameter. Default `0.1482` from joint fit to the
-SAG 2021 biomass scenarios.}
+\item{k}{Curvature parameter. Default `0.1482`. The h-d curve is an
+internal helper for estimating per-class h from a recovered diameter
+distribution; it is operationally independent of the Winck 2015
+biomass allometry, which takes h directly as an input.}
 }
 \value{
 Total height (m). Same length as `d`. Floored at 1.3 m.
@@ -36,6 +38,8 @@ inia_tree_height(d = c(10, 25, 40), Hd = 28, dmax = 49)
 Other biomass:
 \code{\link[=inia_add_biomass]{inia_add_biomass()}},
 \code{\link[=inia_stand_agb]{inia_stand_agb()}},
-\code{\link[=inia_tree_agb]{inia_tree_agb()}}
+\code{\link[=inia_tree_agb]{inia_tree_agb()}},
+\code{\link[=inia_tree_branches]{inia_tree_branches()}},
+\code{\link[=inia_tree_stem]{inia_tree_stem()}}
 }
 \concept{biomass}

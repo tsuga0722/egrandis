@@ -333,13 +333,15 @@ matches your downstream calculation.
 
 ## Aboveground biomass, carbon, and CO2-equivalent
 
-`egrandis` also estimates total aboveground dry biomass (stem +
-branches + foliage) using an allometric equation
-\(AGB = a \cdot d^{b_1} \cdot h^{b_2}\) integrated across the recovered
-diameter distribution, with a stand-specific exponential h-d curve. The
-coefficients were jointly fitted against three SAG 2021 reference
-scenarios (RRMSE 5.4%). Carbon and CO2-equivalent follow IPCC
-subtropical-hardwood defaults.
+`egrandis` estimates aboveground dry biomass using the log-linear
+allometric equations of Winck et al. (2015) for *E. grandis* in
+northeastern Argentina (Misiones / Corrientes, n=41 destructively
+sampled trees, ages 4-32 yr, DBH 16.5-38.1 cm, h 18.4-51 m). Each
+component is of the form
+\(B = f_c \cdot \exp(b_0 + b_1 \ln d + b_2 \ln h)\) and is integrated
+across the recovered Weibull diameter distribution using a
+stand-specific exponential h-d curve. Carbon and CO2-equivalent
+follow IPCC subtropical-hardwood defaults.
 
 ```{r}
 sim <- inia_add_biomass(sim)
@@ -364,11 +366,18 @@ par(op)
 ```
 
 For one-off estimates without a full simulation, call `inia_stand_agb()`
-directly with stand-level moments:
+directly with stand-level moments. The return list also exposes the
+stem and total-branches components alongside the total:
 
 ```{r}
 inia_stand_agb(N = 700, Dq = 28.0, dmax = 35.0, SDd = 4.5, Hd = 24.0)
 ```
+
+The per-tree helpers `inia_tree_stem()`, `inia_tree_branches()`, and
+`inia_tree_agb()` are also exported. Because the Winck 2015 paper fit
+each component equation independently (not under an additivity
+constraint), `stem + branches` does not exactly equal `agb` -- the
+small residual (~2-4%) corresponds to leaves and fit noise.
 
 ## Known limitations
 
@@ -391,6 +400,8 @@ detail:
   with a linear cone tail to keep diameter monotone. The displaced
   volume is < 1% of total tree volume but means integrated total volume
   is a hair below the closed-form Fang total.
-- The biomass module's worst calibration error is around -15% on the
-  youngest / lowest-site / lowest-density case. Ages 7+ inside the
-  calibration envelope are within +-8%.
+- Biomass equations are from Winck et al. (2015) for NE Argentina
+  (fitting envelope DBH 16.5-38.1 cm, h 18.4-51 m, ages 4-32 yr).
+  Predictions outside this envelope -- in particular very young stands
+  with DBH < ~10 cm -- are extrapolations and should be interpreted
+  with care.

@@ -17,7 +17,7 @@ remotes::install_github("tsuga0722/egrandis")
 |---|---|---|
 | **Stand simulator (INIA SAG grandis 2021)** | `simulate_inia()`, `inia_diam_dist()`, `inia_get_distribution()`, `inia_print_summary()`, `inia_dmd_plot()` | Validated against the SAG online simulator at sag.inia.uy. 5 reference scenarios bundled as `sag_validation`. |
 | **Taper + merchantable volume (Fang 2000)** | `inia_taper()`, `inia_tree_total_vol()`, `inia_tree_vol()`, `inia_height_at_d()`, `inia_height_class()`, `inia_merch_vol()` | Coefficients from Hirigoyen et al. 2021 (felled-tree measurements, Uruguay). |
-| **Aboveground biomass + carbon** | `inia_tree_height()`, `inia_tree_agb()`, `inia_stand_agb()`, `inia_add_biomass()` | Jointly fit allometric + h-d curve against 3 SAG 2021 biomass scenarios (RRMSE 5.4%). IPCC default carbon fraction 0.49. |
+| **Aboveground biomass + carbon** | `inia_tree_stem()`, `inia_tree_branches()`, `inia_tree_agb()`, `inia_tree_height()`, `inia_stand_agb()`, `inia_add_biomass()` | Winck et al. 2015 (*Ciencia Florestal* 25(3): 595–606) prediction models for E. grandis in NE Argentina (n=41 trees, ages 4–32 yr). IPCC default carbon fraction 0.49. |
 
 ## Quick start
 
@@ -35,10 +35,10 @@ mv  <- inia_merch_vol(sim, age = 16)
 
 sim$trajectory[c(1, 4, 9, 15), c("age", "AMD", "AB", "Vol_Total", "Biomasa", "CO2eq")]
 #>    age  AMD   AB Vol_Total Biomasa CO2eq
-#> 1    2  7.0  7.0      17.0    18.7  33.6
-#> 4    5 16.4 25.9     150.0   122.4 219.9
-#> 9   10 28.0 38.9     395.7   244.6 439.5
-#> 15  16 36.8 45.0     609.7   329.4 591.9
+#> 1    2  7.0  7.0      17.0    14.1  25.4
+#> 4    5 16.4 25.9     150.0   101.1 181.6
+#> 9   10 28.0 38.9     395.7   224.9 404.1
+#> 15  16 36.8 45.0     609.7   318.3 571.8
 
 attr(mv, "totals")
 #> vol_large_sawlog vol_small_sawlog         vol_pulp        top_waste
@@ -53,7 +53,7 @@ The simulator tracks the SAG online reference to within 0.5 m²/ha basal area, 1
 
 ![SAG validation](man/figures/sag-validation.png)
 
-Per-submodel tolerances documented and enforced in the test suite (157 testthat checks total):
+Per-submodel tolerances documented and enforced in the test suite (205 testthat checks total):
 
 | Submodel | Source | Achieved tolerance vs SAG |
 |---|---|---|
@@ -170,31 +170,27 @@ sim <- inia_add_biomass(sim)
 
 sim$trajectory[c(4, 9, 15), c("age", "Vol_Total", "Biomasa", "Carbon", "CO2eq")]
 #>    age Vol_Total Biomasa Carbon CO2eq
-#> 4    5     150.0   122.4   60.0 219.9
-#> 9   10     395.7   244.6  119.9 439.5
-#> 15  16     609.7   329.4  161.4 591.9
+#> 4    5     150.0   101.1   49.5 181.6
+#> 9   10     395.7   224.9  110.2 404.1
+#> 15  16     609.7   318.3  156.0 571.8
 ```
 
 ![Biomass and carbon trajectory](man/figures/biomass-trajectory.png)
 
-For one-off stand-level estimates without a full simulation, call `inia_stand_agb()` directly:
+`inia_stand_agb()` exposes the per-component breakdown alongside the total:
 
 ```r
 inia_stand_agb(N = 700, Dq = 28, dmax = 35, SDd = 4.5, Hd = 24)
-#> $agb     [1] 259.8
-#> $carbon  [1] 127.3
-#> $co2eq   [1] 466.7
+#> $agb      [1] 226.4
+#> $stem     [1] 164.5
+#> $branches [1]  53.2
+#> $carbon   [1] 110.9
+#> $co2eq    [1] 406.7
 ```
 
-Calibration was joint over allometric coefficients `a`, `b1`, `b2` (in `AGB = a · d^b1 · h^b2`) and the h-d curvature `k`, fit against three SAG 2021 scenarios (15 data points). Achieved performance:
+Per-tree helpers `inia_tree_stem()`, `inia_tree_branches()`, and `inia_tree_agb()` are also exported for users who want to apply the allometry outside the stand-integration pipeline.
 
-| Scenario | Age 5 | Age 10 | Age 16 |
-|---|---|---|---|
-| Z7 SI = 30, 550 TPH | +3.0 % | +2.1 % | -3.5 % |
-| Z7 SI = 25, 550 TPH | -14.8 % | +4.8 % | +1.6 % |
-| Z7 SI = 30, 1111 TPH | +5.9 % | -1.3 % | -7.9 % |
-
-Overall RRMSE 5.4 %; ages 7+ within ± 8 %. Carbon and CO₂-equivalent use IPCC subtropical-hardwood defaults (carbon fraction 0.49; CO₂eq = AGB × 1.797).
+**Provenance.** Tree-level equations are from Winck et al. (2015) *Ciencia Florestal* 25(3): 595–606, fitted on 41 destructively sampled *E. grandis* trees in Misiones / NE Corrientes, Argentina (ages 4–32 yr, DBH 16.5–38.1 cm, h 18.4–51 m; total-AGB R² = 0.99). Implied wood densities fall within published Brazilian/Uruguayan basic-density bounds (~425–555 kg/m³). The components (stem, branches) were fitted independently in the source paper, so `stem + branches` differs from `agb` by a small residual (~2–4%) that corresponds to leaves plus fit noise. Carbon and CO₂-equivalent use IPCC subtropical-hardwood defaults (carbon fraction 0.49; CO₂eq = AGB × 1.797).
 
 ## Thinning regimes
 

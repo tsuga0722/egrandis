@@ -15,22 +15,35 @@ inia_tree_agb(d, h)
 AGB (kg per tree).
 }
 \description{
-Allometric equation \eqn{AGB = a \cdot d^{b_1} \cdot h^{b_2}}
-(kg per tree, total aboveground including stem, branches, and foliage).
-Coefficients (a, b1, b2) jointly fitted with the height-diameter
-curvature parameter against three SAG 2021 scenarios; see package
-calibration notes.
+Log-linear allometric equation
+\eqn{AGB = f_c \cdot \exp(b_0 + b_1 \ln d + b_2 \ln h)}
+for *E. grandis* total aboveground dry biomass (stem + branches +
+foliage), kg per tree, from Winck et al. (2015) Table 3 (Zone 1, NE
+Argentina). R^2 = 0.99, ECMP = 0.02; `fc` = 1.01.
+}
+\details{
+The total-AGB equation is fitted independently of the stem and
+branches equations in the source paper; the implied component
+breakdown (stem + branches predicted separately) differs from this
+total by a small residual (~2-4%) that corresponds to leaves and
+fit noise. Use [inia_tree_stem()] and [inia_tree_branches()] for
+component-level estimates.
 }
 \examples{
 inia_tree_agb(d = 35, h = 28)
 inia_tree_agb(d = c(20, 30, 40), h = c(22, 27, 31))
 }
+\references{
+Winck RA et al. (2015). *Ciencia Florestal* 25(3): 595-606.
+}
 \seealso{
-[inia_tree_height()], [inia_stand_agb()]
+[inia_tree_stem()], [inia_tree_branches()], [inia_stand_agb()]
 
 Other biomass:
 \code{\link[=inia_add_biomass]{inia_add_biomass()}},
 \code{\link[=inia_stand_agb]{inia_stand_agb()}},
-\code{\link[=inia_tree_height]{inia_tree_height()}}
+\code{\link[=inia_tree_branches]{inia_tree_branches()}},
+\code{\link[=inia_tree_height]{inia_tree_height()}},
+\code{\link[=inia_tree_stem]{inia_tree_stem()}}
 }
 \concept{biomass}
