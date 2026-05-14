@@ -71,7 +71,7 @@ the volume itself.
 The simulator object is only used as a container for `trajectory`,
 so this function works equally with any model whose trajectory data
 frame carries the columns `age`, `N`, `DAP_medio`, `DAP_max`,
-`Desvio_DAP`, and `AMD` (the future Paraguay model included).
+`Desvio_DAP`, and `AMD` (including the forthcoming `simulate_grandis()`).
 }
 \examples{
 sim <- simulate_inia(

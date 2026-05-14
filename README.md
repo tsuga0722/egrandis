@@ -2,7 +2,7 @@
 
 **Growth, yield, taper, and biomass models for *Eucalyptus grandis* clonal plantations**
 
-An R package for simulating stand dynamics, log-product assortment, and aboveground biomass / carbon accounting in *E. grandis* plantations across subtropical South America (Paraguay, Uruguay, Argentina, southern Brazil). All three modules are interoperable: a stand simulation feeds the diameter distribution that drives both merchantable-volume bucking and biomass estimation.
+An R package for simulating stand dynamics, log-product assortment, and aboveground biomass / carbon accounting in *E. grandis* plantations across subtropical South America. All three modules are interoperable: a stand simulation feeds the diameter distribution that drives both merchantable-volume bucking and biomass estimation.
 
 ## Installation
 

@@ -300,7 +300,7 @@ inia_height_class <- function(D, Dq, Hd, k = 0.5, cap = 1.05) {
 #' The simulator object is only used as a container for `trajectory`,
 #' so this function works equally with any model whose trajectory data
 #' frame carries the columns `age`, `N`, `DAP_medio`, `DAP_max`,
-#' `Desvio_DAP`, and `AMD` (the future Paraguay model included).
+#' `Desvio_DAP`, and `AMD` (including the forthcoming `simulate_grandis()`).
 #'
 #' @param sim Result of [simulate_inia()] (or any object with a
 #'   compatible `trajectory` data frame).

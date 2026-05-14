@@ -9,11 +9,12 @@ Authors@R: c(
   )
 Description: Simulates growth, mortality, thinning response, and yield in
     Eucalyptus grandis plantations across a range of management regimes,
-    intended for operational forestry planning in subtropical South America.
+    intended for operational forestry planning in subtropical regions.
     Currently provides a faithful reproduction of the INIA SAG grandis 2021
     system (Rachid-Casnati et al. 2019; Methol 2003) validated against the
-    online simulator at sag.inia.uy. A density-dependent Paraguay model is
-    in development.
+    online simulator at sag.inia.uy. A second simulator with augmented
+    site-variable predictors and density-driven self-thinning, intended for
+    local PSP-data calibration, is in development.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
