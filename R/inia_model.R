@@ -46,6 +46,11 @@
   weibull_kz = c(-0.22004032, -0.001433169, 0.150611381,
                  -0.078575996,  0.004305716, 0.008804944),
 
+  # Stand density index. Reineke's beta = 1.605 (1933 classical value);
+  # SDImax = 1250 for E. grandis subtropical South America
+  # (Rachid-Casnati et al. 2024).
+  sdi = list(SDImax = 1250, beta = 1.605, Dq_ref = 25),
+
   # Aboveground biomass module. Calibrated against SAG grandis 2021
   # output (3 scenarios, 15 data points, RRMSE 5.4%). See R/inia_biomass.R.
   biomass = list(
@@ -129,4 +134,10 @@ inia_sdd <- function(SDd1, t1, t2, Z7 = 1) {
   A <- p$a0 + p$a1 * Z7
   ratio <- log(1 - exp(-p$b * t2)) / log(1 - exp(-p$b * t1))
   A * (SDd1 / A)^ratio
+}
+
+# Reineke's stand density index. Independent of site/zone.
+inia_sdi <- function(N, Dq) {
+  p <- .inia_params$sdi
+  N * (Dq / p$Dq_ref)^p$beta
 }

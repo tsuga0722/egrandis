@@ -2,6 +2,7 @@
 
 export(inia_add_biomass)
 export(inia_diam_dist)
+export(inia_dmd_plot)
 export(inia_get_distribution)
 export(inia_height_at_d)
 export(inia_height_class)

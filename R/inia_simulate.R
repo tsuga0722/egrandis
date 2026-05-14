@@ -34,7 +34,8 @@
 #' \describe{
 #'   \item{`trajectory`}{Data frame, one row per time step, with columns
 #'     `age`, `AMD` (dominant height, m), `N`, `AB` (basal area), `DAP_medio`,
-#'     `DAP_max`, `Desvio_DAP`, `Vol_Total`, `MAI`, `SDI`, `ICA`.}
+#'     `DAP_max`, `Desvio_DAP`, `Vol_Total`, `MAI`, `SDI`, `RD` (relative
+#'     density, `SDI / SDImax`), `ICA`.}
 #'   \item{`thinnings`}{Data frame of applied thinning events, or `NULL`.}
 #'   \item{`cumulative_thin_vol`}{Total volume removed in thins (m3/ha).}
 #'   \item{`final_standing`}{Standing volume at `t_end` (m3/ha).}
@@ -103,7 +104,7 @@ simulate_inia <- function(SI, N0, G0, Hd0 = NULL, dmax0 = NULL, SDd0 = NULL,
 
     Dq <- sqrt(G / max(N, 1) * 40000 / pi)
     V  <- inia_vol(G, N, Hd, Z7)
-    SDI <- N * (Dq / 25)^1.605
+    SDI <- inia_sdi(N, Dq)
 
     if (!is.null(thins)) {
       for (j in seq_along(thins)) {
@@ -116,7 +117,7 @@ simulate_inia <- function(SI, N0, G0, Hd0 = NULL, dmax0 = NULL, SDd0 = NULL,
 
           Dq <- sqrt(G / N * 40000 / pi)
           V <- inia_vol(G, N, Hd, Z7)
-          SDI <- N * (Dq / 25)^1.605
+          SDI <- inia_sdi(N, Dq)
 
           V_rem <- V_pre - V
           cumul_thin <- cumul_thin + V_rem
@@ -144,7 +145,8 @@ simulate_inia <- function(SI, N0, G0, Hd0 = NULL, dmax0 = NULL, SDd0 = NULL,
       Desvio_DAP = round(SDd, 1),
       Vol_Total = round(V, 1),
       MAI = round(V / t, 1),
-      SDI = round(SDI)
+      SDI = round(SDI),
+      RD = round(SDI / .inia_params$sdi$SDImax, 3)
     ))
   }
 

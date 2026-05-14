@@ -48,7 +48,8 @@ A list with:
 \describe{
   \item{`trajectory`}{Data frame, one row per time step, with columns
     `age`, `AMD` (dominant height, m), `N`, `AB` (basal area), `DAP_medio`,
-    `DAP_max`, `Desvio_DAP`, `Vol_Total`, `MAI`, `SDI`, `ICA`.}
+    `DAP_max`, `Desvio_DAP`, `Vol_Total`, `MAI`, `SDI`, `RD` (relative
+    density, `SDI / SDImax`), `ICA`.}
   \item{`thinnings`}{Data frame of applied thinning events, or `NULL`.}
   \item{`cumulative_thin_vol`}{Total volume removed in thins (m3/ha).}
   \item{`final_standing`}{Standing volume at `t_end` (m3/ha).}
