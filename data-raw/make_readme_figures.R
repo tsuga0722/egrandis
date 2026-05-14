@@ -101,7 +101,25 @@ with(sim_biom$trajectory, {
 par(op); dev.off()
 
 
-# --- 5. SAG validation overlay -------------------------------------------------
+# --- 5. Density management diagrams (unthinned + thinned) --------------------
+sim_thinned_dmd <- simulate_inia(
+  SI = 28, N0 = 900, G0 = 7.0,
+  Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+  t0 = 2, t_end = 16, zone = 7,
+  thins = list(
+    list(age = 4, N_after = 600),
+    list(age = 9, N_after = 300)
+  )
+)
+ggplot2::ggsave(file.path(out, "dmd-unthinned.png"),
+                inia_dmd_plot(sim_baseline),
+                width = 8, height = 5.5, dpi = 150)
+ggplot2::ggsave(file.path(out, "dmd-thinned.png"),
+                inia_dmd_plot(sim_thinned_dmd),
+                width = 8, height = 5.5, dpi = 150)
+
+
+# --- 6. SAG validation overlay -------------------------------------------------
 png_open("sag-validation.png", w = 1200, h = 800)
 op <- par(mar = c(4.2, 4.2, 2.5, 1))
 data(sag_validation, package = "egrandis")

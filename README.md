@@ -15,7 +15,7 @@ remotes::install_github("tsuga0722/egrandis")
 
 | Module | Public API | Calibration |
 |---|---|---|
-| **Stand simulator (INIA SAG grandis 2021)** | `simulate_inia()`, `inia_diam_dist()`, `inia_get_distribution()`, `inia_print_summary()` | Validated against the SAG online simulator at sag.inia.uy. 5 reference scenarios bundled as `sag_validation`. |
+| **Stand simulator (INIA SAG grandis 2021)** | `simulate_inia()`, `inia_diam_dist()`, `inia_get_distribution()`, `inia_print_summary()`, `inia_dmd_plot()` | Validated against the SAG online simulator at sag.inia.uy. 5 reference scenarios bundled as `sag_validation`. |
 | **Taper + merchantable volume (Fang 2000)** | `inia_taper()`, `inia_tree_total_vol()`, `inia_tree_vol()`, `inia_height_at_d()`, `inia_height_class()`, `inia_merch_vol()` | Coefficients from Hirigoyen et al. 2021 (felled-tree measurements, Uruguay). |
 | **Aboveground biomass + carbon** | `inia_tree_height()`, `inia_tree_agb()`, `inia_stand_agb()`, `inia_add_biomass()` | Jointly fit allometric + h-d curve against 3 SAG 2021 biomass scenarios (RRMSE 5.4%). IPCC default carbon fraction 0.49. |
 
@@ -53,15 +53,15 @@ The simulator tracks the SAG online reference to within 0.5 m²/ha basal area, 1
 
 ![SAG validation](man/figures/sag-validation.png)
 
-Per-submodel tolerances documented and enforced in the test suite (143 testthat checks total):
+Per-submodel tolerances documented and enforced in the test suite (157 testthat checks total):
 
 | Submodel | Source | Achieved tolerance vs SAG |
 |---|---|---|
 | Dominant height (Hd) | RC2019 eqn 5 | Exact (< 0.2 m) |
 | Basal area (G) | RC2019 eqn 6 | Exact (< 0.5 m²/ha) |
-| Mortality (N) | Clutter-Jones, refit to SAG 2021 | ± 12 trees |
+| Mortality (N) | Clutter-Jones, refit to SAG 2021 | ± 12 trees (Z7); ± 20 trees (Z8/9) |
 | Volume (V) | Stand-level exp, refit to SAG 2021 | < 3 % at age ≥ 5 |
-| Max diameter (dmax) | Schumacher, refit Z7 | ± 1.2 cm |
+| Max diameter (dmax) | Schumacher, refit Z7 and Z8/9 | ± 1.2 cm (Z7); ± 0.5 cm (Z8/9) |
 | Diameter SD (SDd) | RC2019 eqn 8 | Exact (< 0.2 cm) |
 | Diameter distribution | Inverse Weibull (Methol 2001) | ± 1-3 trees/class |
 
@@ -89,6 +89,40 @@ sims <- lapply(densities, function(n) {
 ![MAI by density](man/figures/mai-by-density.png)
 
 The INIA basal-area equation has no explicit density term, so per-hectare BA converges across initial densities — peak MAI rises modestly with stocking but the timing is similar.
+
+## Density management diagrams
+
+`inia_dmd_plot()` overlays a simulated trajectory on a Reineke-style stand-density diagram with three literature-sourced reference lines: Reineke maximum (`RD = 1.0`, `SDImax = 1250` for *E. grandis* subtropical South America, Rachid-Casnati et al. 2024), Drew & Flewelling (1979) self-thinning lower limit (`RD = 0.60`), and competition onset (`RD = 0.35`).
+
+```r
+sim <- simulate_inia(SI = 28, N0 = 900, G0 = 7.0,
+                     Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+                     t0 = 2, t_end = 16, zone = 7)
+inia_dmd_plot(sim)
+```
+
+![Unthinned DMD](man/figures/dmd-unthinned.png)
+
+The unthinned 900 TPH baseline climbs from `RD ≈ 0.20` at age 2 to `RD ≈ 0.62` at age 16, crossing the self-thinning lower limit; a two-thin regime keeps the stand below the competition-onset line for the rest of the rotation:
+
+```r
+sim_thinned <- simulate_inia(
+  SI = 28, N0 = 900, G0 = 7.0,
+  Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+  t0 = 2, t_end = 16, zone = 7,
+  thins = list(
+    list(age = 4, N_after = 600),
+    list(age = 9, N_after = 300)
+  )
+)
+inia_dmd_plot(sim_thinned)
+```
+
+![Thinned DMD](man/figures/dmd-thinned.png)
+
+The trajectory data frame also carries an `RD` column (`SDI / SDImax`) for direct numerical comparisons.
+
+> The INIA basal-area submodel has no density term, so the DMD here is descriptive on top of the model — it shows where the stand sits relative to literature stocking limits, but `simulate_inia()` does not slow `G` as `RD` rises. Use `RD` as a thinning trigger rather than a model-derived growth-suppression signal.
 
 ## Taper and merchantable volume
 
@@ -181,13 +215,13 @@ sim$total_yield   # standing + thinned
 ## Zones
 
 - **Zone 7** (Tacuarembó, Rivera — northern Uruguay): primary calibration. SI range 22-35 supported.
-- **Zones 8 / 9** (central/western Uruguay): identical output in SAG 2021. Lower productivity. Mortality model is currently a no-op for these zones (known limitation; see *Known limitations* below).
+- **Zones 8 / 9** (central/western Uruguay): identical output in SAG 2021. Lower productivity. Mortality and dmax are fit to a single SAG Z8 reference scenario; see *Known limitations* for the shape caveat.
 
 ## Known limitations
 
 - **Basal area overshoots when initialized at age 1.** The Schumacher projection converges aggressively toward the asymptote (≈ 56 m²/ha for Zone 7) from low starting BA. Behaviour matches SAG 2021. For reliable projections, initialize from age 2 or later with measured G.
 - **No competition-driven self-thinning.** All mortality is a background process; density feedback is not modelled.
-- **Zone 8 / 9 mortality is currently zero.** The fitted Clutter-Jones `b = 0` for Z8/9 collapses to `N₂ = N₁`. To be re-fit; tests document this as a TODO rather than asserting it.
+- **Zone 8 / 9 mortality fitted to a single SAG reference scenario.** Z8/9 mortality is now fit to a sane Clutter-Jones regime (max abs error ~20 trees, single Z8 scenario). The SAG Z8/9 trajectory has a humped per-year-loss shape around age 5-6 that the monotonic form cannot fully capture; the underlying SAG calibration also rests on a narrower data envelope than Zone 7.
 - **`inia_taper()` segment 3** (q > 0.94) is replaced with a linear cone tail to keep stem diameter monotone; the published `b3 = 2e-4` would otherwise make the formula diverge at the tip. The displaced volume is < 1 % of total tree volume.
 - **The Fang taper-volume and INIA stand-level volume don't agree exactly.** They were fit to different data; see the box above.
 - **Biomass calibration is scoped to Zone 7 at moderate-to-high density and SI 25-30.** Worst calibration case is around -15 % on the youngest / lowest-site / lowest-density point. Outside this envelope errors will grow.

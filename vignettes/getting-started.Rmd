@@ -76,6 +76,44 @@ sim_thinned$thinnings
 sim_thinned$total_yield  # standing + thinned volume
 ```
 
+## Density management diagrams
+
+`inia_dmd_plot()` overlays a simulated trajectory on a Reineke-style
+stand-density diagram with three literature-sourced reference lines:
+Reineke maximum (`RD = 1.0`) at `SDImax = 1250` for *E. grandis*
+subtropical South America (Rachid-Casnati et al. 2024), Drew &
+Flewelling (1979) self-thinning lower limit (`RD = 0.60`), and
+competition onset (`RD = 0.35`). The reference lines are independent
+of `simulate_inia()`; the trajectory is plotted on top with age labels
+and red arrows at each thinning event.
+
+```{r, fig.height = 5}
+inia_dmd_plot(sim)
+```
+
+The unthinned 900 TPH baseline climbs from `RD ~ 0.20` at age 2 to
+`RD ~ 0.62` at age 16 -- crossing the self-thinning lower limit
+suggests competition is well underway. A two-thin regime keeps the
+stand below the competition-onset line for the rest of the rotation:
+
+```{r, fig.height = 5}
+inia_dmd_plot(sim_thinned)
+```
+
+The trajectory data frame also carries an `RD` column (`SDI / SDImax`)
+for direct numerical comparisons:
+
+```{r}
+tail(sim$trajectory[, c("age", "DAP_medio", "N", "SDI", "RD")])
+```
+
+The INIA basal-area submodel has no density term, so the DMD here is
+descriptive on top of the model -- it shows where the stand sits
+relative to literature stocking limits but `simulate_inia()` does not
+slow `G` as `RD` rises. Use `RD` as a thinning trigger (e.g. "thin
+before crossing 0.60") rather than as a model-derived growth-
+suppression signal.
+
 ## Comparing density regimes
 
 Because the INIA model is a whole-stand projection, comparing regimes is
@@ -318,12 +356,14 @@ detail:
 - Basal area overshoots when initialized at age 1 well below the
   Schumacher asymptote. Initialize from age 2 or later with a measured
   G0 for reliable projections.
-- Zone 8/9 mortality is unfitted (the current parameters produce no
-  background mortality). Zone 7 is the validated case.
-- The dmax submodel was fit at one density / zone combination. High
-  densities and Zone 8/9 dmax trajectories drift from SAG.
-- Mortality has no density feedback. Self-thinning at high density is
-  not represented.
+- Zone 8/9 mortality and dmax are fitted to SAG 2021 (max abs error
+  ~20 trees and ~0.5 cm respectively, single Z8 reference scenario).
+  The Z8/9 SAG mortality trajectory has a humped per-year-loss shape
+  around age 5-6 that the monotonic Clutter-Jones form cannot fully
+  capture.
+- Mortality has no explicit density feedback. Self-thinning at high
+  density is not represented, though density does enter implicitly
+  through the `N1^a` term.
 - The Fang taper's segment 3 (above relative height ~0.94) is replaced
   with a linear cone tail to keep diameter monotone. The displaced
   volume is < 1% of total tree volume but means integrated total volume
