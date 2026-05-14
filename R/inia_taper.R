@@ -281,40 +281,79 @@ inia_height_class <- function(D, Dq, Hd, k = 0.5, cap = 1.05) {
 #' Stand-level merchantable volume by product assortment
 #'
 #' Buckets stand volume into named products defined by small-end diameter
-#' limits, integrating the Fang taper across the recovered Weibull
-#' diameter distribution at the requested age. Products are assigned to
-#' butt-up sections of each stem: the product with the largest `d_min`
-#' takes the butt log until diameter falls below its limit, the next
-#' product takes the next section down to its limit, and so on.
+#' and (optionally) minimum-log-length limits, integrating the Fang taper
+#' across the recovered Weibull diameter distribution at the requested
+#' age. Products are assigned to butt-up sections of each stem: the
+#' product with the largest `d_min` takes the butt log down to its
+#' small-end limit (provided the resulting log meets `l_min`), the next
+#' product takes the next section, and so on. A product whose section
+#' would be shorter than its `l_min` is skipped without consuming any
+#' bole -- the smaller-grade products that follow still get a shot at
+#' the section.
 #'
-#' @param sim Result of [simulate_inia()].
+#' When `pruned_height` is supplied, each product's volume is also split
+#' into the portion below the pruned height (`vol_<prod>_pruned`) and
+#' the portion above it (`vol_<prod>_unpruned`). The split is purely
+#' geometric -- no clear-wood / knotty quality modifier is applied to
+#' the volume itself.
+#'
+#' The simulator object is only used as a container for `trajectory`,
+#' so this function works equally with any model whose trajectory data
+#' frame carries the columns `age`, `N`, `DAP_medio`, `DAP_max`,
+#' `Desvio_DAP`, and `AMD` (the future Paraguay model included).
+#'
+#' @param sim Result of [simulate_inia()] (or any object with a
+#'   compatible `trajectory` data frame).
 #' @param age Target age (must appear in `sim$trajectory$age`).
 #' @param products Named list. Each element is a list with `d_min` (cm)
-#'   -- the small-end diameter for that product. Order does not matter:
+#'   -- the small-end diameter for that product -- and optionally
+#'   `l_min` (m), the minimum log length. Order does not matter:
 #'   products are sorted internally by `d_min` descending. If `NULL`, a
 #'   default assortment of three generic solid-wood grades is used:
 #'   `large_sawlog` (>= 25 cm), `small_sawlog` (>= 14 cm), and `pulp`
-#'   (>= 8 cm). Pass any custom list to define market-specific products.
+#'   (>= 8 cm), all without a length constraint.
+#' @param pruned_height Optional height above ground (m) below which the
+#'   stem has been silviculturally pruned. When supplied, each product
+#'   gains companion `vol_<prod>_pruned` and `vol_<prod>_unpruned`
+#'   columns whose sum equals `vol_<prod>`. No quality coefficient is
+#'   applied -- the split is geometric only.
 #' @param hb Stump height (m). Default 0.10.
 #' @param hd_k Power-law exponent passed to [inia_height_class()] for
 #'   estimating per-diameter-class total height. Default 0.5.
 #' @return Data frame with one row per diameter class times one column
 #'   per product (`vol_<product>`, m^3/ha), plus `class_mid`, `freq`,
-#'   `H_class`, and `vol_total` (m^3/ha) per class. A `totals` attribute
-#'   on the returned object gives per-product per-hectare aggregates and
-#'   the residual `top_waste` (volume between the smallest small-end
-#'   limit and the tip).
+#'   `H_class`, and `vol_total` (m^3/ha) per class. When `pruned_height`
+#'   is set, paired `vol_<product>_pruned` / `vol_<product>_unpruned`
+#'   columns are added (the original `vol_<product>` remains as their
+#'   sum). The `totals` attribute carries per-product per-hectare
+#'   aggregates and the residual `top_waste` volume (above the smallest
+#'   small-end limit); when `pruned_height` is set the per-product
+#'   pruned/unpruned aggregates are added too.
 #' @examples
 #' sim <- simulate_inia(
 #'   SI = 28, N0 = 900, G0 = 7.0,
 #'   Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
 #'   t0 = 2, t_end = 16, zone = 7
 #' )
-#' mv <- inia_merch_vol(sim, age = 16)
+#'
+#' # Default assortment with a 4 m minimum length on sawlogs.
+#' mv <- inia_merch_vol(
+#'   sim, age = 16,
+#'   products = list(
+#'     large_sawlog = list(d_min = 25, l_min = 4),
+#'     small_sawlog = list(d_min = 14, l_min = 2.4),
+#'     pulp         = list(d_min = 8)
+#'   )
+#' )
 #' attr(mv, "totals")
+#'
+#' # Same regime, with the lower 6 m pruned: see the per-grade split.
+#' mv_pruned <- inia_merch_vol(sim, age = 16, pruned_height = 6)
+#' attr(mv_pruned, "totals")
 #' @export
-inia_merch_vol <- function(sim, age, products = NULL, hb = 0.10,
-                           hd_k = 0.5) {
+inia_merch_vol <- function(sim, age, products = NULL,
+                           pruned_height = NULL,
+                           hb = 0.10, hd_k = 0.5) {
   if (is.null(products)) {
     products <- list(
       large_sawlog = list(d_min = 25),
@@ -322,11 +361,20 @@ inia_merch_vol <- function(sim, age, products = NULL, hb = 0.10,
       pulp         = list(d_min = 8)
     )
   }
+  if (!is.null(pruned_height) &&
+      (!is.numeric(pruned_height) || pruned_height < 0)) {
+    stop("`pruned_height` must be a non-negative numeric, in metres.")
+  }
+
   # Sort products by d_min descending so butt-up bucking works.
   d_mins <- vapply(products, function(p) p$d_min, numeric(1))
+  l_mins <- vapply(products, function(p) {
+    if (is.null(p$l_min)) 0 else as.numeric(p$l_min)
+  }, numeric(1))
   ord <- order(d_mins, decreasing = TRUE)
   products <- products[ord]
   d_mins   <- d_mins[ord]
+  l_mins   <- l_mins[ord]
   prod_names <- names(products)
 
   # Pull the stand state at the requested age and recover the Weibull
@@ -349,7 +397,23 @@ inia_merch_vol <- function(sim, age, products = NULL, hb = 0.10,
   for (nm in prod_names) {
     dd[[paste0("vol_", nm)]] <- 0
   }
+  if (!is.null(pruned_height)) {
+    for (nm in prod_names) {
+      dd[[paste0("vol_", nm, "_pruned")]]   <- 0
+      dd[[paste0("vol_", nm, "_unpruned")]] <- 0
+    }
+  }
   dd$vol_top_waste <- 0
+
+  # Helper: pruned-portion of a log lying between h_lower and h_upper.
+  pruned_volume <- function(D_i, H_i, h_lower, h_upper) {
+    if (is.null(pruned_height) || h_lower >= pruned_height) return(0)
+    h_upper_p <- min(h_upper, pruned_height)
+    if (h_upper_p <= h_lower) return(0)
+    inia_tree_vol(D = D_i, H = H_i,
+                  h_lower = h_lower, h_upper = h_upper_p,
+                  hb = hb)
+  }
 
   for (i in seq_len(nrow(dd))) {
     D_i <- dd$class_mid[i]
@@ -361,25 +425,32 @@ inia_merch_vol <- function(sim, age, products = NULL, hb = 0.10,
     total_vol <- inia_tree_vol(D = D_i, H = H_i, hb = hb)
     dd$vol_total[i] <- total_vol * n_i
 
-    # Butt-up cascade: each product gets the next section down to its d_min.
+    # Butt-up cascade: each product gets the next section down to its
+    # d_min, provided the section is at least l_min long.
     h_prev <- hb
     consumed <- 0
     for (j in seq_along(prod_names)) {
       nm <- prod_names[j]
       d_min <- d_mins[j]
+      l_min <- l_mins[j]
 
       d_butt_remaining <- inia_taper(h_prev, D = D_i, H = H_i, hb = hb)
-      if (d_butt_remaining <= d_min) {
-        # This grade gets no wood from this tree -- the bole has already
-        # tapered below its small-end limit. Smaller-grade products that
-        # follow still get a shot at the remaining bole.
-        next
-      }
+      if (d_butt_remaining <= d_min) next  # bole already past this grade
+
       h_next <- inia_height_at_d(d_min, D = D_i, H = H_i, hb = hb)
+      if (h_next - h_prev < l_min) next    # section shorter than l_min
+
       vol_log <- inia_tree_vol(D = D_i, H = H_i,
                                h_lower = h_prev, h_upper = h_next,
                                hb = hb)
       dd[[paste0("vol_", nm)]][i] <- vol_log * n_i
+
+      if (!is.null(pruned_height)) {
+        v_p <- pruned_volume(D_i, H_i, h_prev, h_next)
+        dd[[paste0("vol_", nm, "_pruned")]][i]   <- v_p * n_i
+        dd[[paste0("vol_", nm, "_unpruned")]][i] <- (vol_log - v_p) * n_i
+      }
+
       consumed <- consumed + vol_log * n_i
       h_prev <- h_next
     }
@@ -387,18 +458,37 @@ inia_merch_vol <- function(sim, age, products = NULL, hb = 0.10,
     dd$vol_top_waste[i] <- dd$vol_total[i] - consumed
   }
 
+  prod_cols <- paste0("vol_", prod_names)
   totals <- c(
     stats::setNames(
-      vapply(prod_names, function(nm) sum(dd[[paste0("vol_", nm)]]),
-             numeric(1)),
-      paste0("vol_", prod_names)
+      vapply(prod_cols, function(nm) sum(dd[[nm]]), numeric(1)),
+      prod_cols
     ),
     top_waste = sum(dd$vol_top_waste),
     total     = sum(dd$vol_total)
   )
+  if (!is.null(pruned_height)) {
+    extra_cols <- c(paste0(prod_cols, "_pruned"),
+                    paste0(prod_cols, "_unpruned"))
+    totals <- c(
+      totals,
+      stats::setNames(
+        vapply(extra_cols, function(nm) sum(dd[[nm]]), numeric(1)),
+        extra_cols
+      )
+    )
+  }
 
-  out <- dd[, c("class_mid", "freq", "H_class", "vol_total",
-                paste0("vol_", prod_names), "vol_top_waste")]
+  keep_cols <- c("class_mid", "freq", "H_class", "vol_total", prod_cols)
+  if (!is.null(pruned_height)) {
+    keep_cols <- c(keep_cols,
+                   paste0(prod_cols, "_pruned"),
+                   paste0(prod_cols, "_unpruned"))
+  }
+  keep_cols <- c(keep_cols, "vol_top_waste")
+
+  out <- dd[, keep_cols]
   attr(out, "totals") <- totals
+  attr(out, "pruned_height") <- pruned_height
   out
 }

@@ -124,3 +124,112 @@ test_that("inia_merch_vol errors on missing age", {
   )
   expect_error(inia_merch_vol(sim, age = 99), "not found")
 })
+
+# ---- Min log length ---------------------------------------------------------
+
+# Reusable fixture for the new-feature tests.
+make_mid_rotation_sim <- function() {
+  simulate_inia(
+    SI = 28, N0 = 900, G0 = 7.0,
+    Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
+    t0 = 2, t_end = 16, zone = 7
+  )
+}
+
+test_that("l_min defaults to no constraint and matches prior behavior", {
+  sim <- make_mid_rotation_sim()
+  a <- attr(inia_merch_vol(sim, age = 16), "totals")
+  b <- attr(inia_merch_vol(sim, age = 16,
+              products = list(
+                large_sawlog = list(d_min = 25),
+                small_sawlog = list(d_min = 14),
+                pulp         = list(d_min = 8)
+              )), "totals")
+  expect_equal(unname(a["vol_large_sawlog"]), unname(b["vol_large_sawlog"]),
+               tolerance = 1e-6)
+  expect_equal(unname(a["total"]), unname(b["total"]), tolerance = 1e-6)
+})
+
+test_that("a binding l_min shifts volume from a higher grade to a lower one", {
+  sim <- make_mid_rotation_sim()
+  unconstr <- attr(inia_merch_vol(sim, age = 16), "totals")
+  constrained <- attr(inia_merch_vol(sim, age = 16,
+    products = list(
+      large_sawlog = list(d_min = 25, l_min = 4),
+      small_sawlog = list(d_min = 14, l_min = 2.4),
+      pulp         = list(d_min = 8)
+    )), "totals")
+  # Large sawlog volume must drop, small sawlog must rise, and the
+  # stand-level total bole volume is conserved.
+  expect_lt(constrained[["vol_large_sawlog"]], unconstr[["vol_large_sawlog"]])
+  expect_gt(constrained[["vol_small_sawlog"]], unconstr[["vol_small_sawlog"]])
+  expect_equal(constrained[["total"]], unconstr[["total"]], tolerance = 1e-6)
+})
+
+test_that("an unreachable l_min skips the grade entirely", {
+  sim <- make_mid_rotation_sim()
+  mv <- inia_merch_vol(sim, age = 16,
+    products = list(
+      large_sawlog = list(d_min = 25, l_min = 100),  # nothing is 100 m long
+      small_sawlog = list(d_min = 14),
+      pulp         = list(d_min = 8)
+    ))
+  totals <- attr(mv, "totals")
+  expect_equal(totals[["vol_large_sawlog"]], 0)
+  # All bole volume now falls to small_sawlog + pulp + top_waste; total
+  # bole conserved.
+  expect_equal(totals[["total"]],
+               attr(inia_merch_vol(sim, age = 16), "totals")[["total"]],
+               tolerance = 1e-6)
+})
+
+# ---- Pruned-height split ----------------------------------------------------
+
+test_that("pruned_height NULL behaves identically to the unsplit call", {
+  sim <- make_mid_rotation_sim()
+  mv_null <- inia_merch_vol(sim, age = 16, pruned_height = NULL)
+  mv_base <- inia_merch_vol(sim, age = 16)
+  expect_equal(attr(mv_null, "totals"), attr(mv_base, "totals"))
+  expect_false(any(grepl("_pruned$",   names(mv_null))))
+  expect_false(any(grepl("_unpruned$", names(mv_null))))
+})
+
+test_that("pruned + unpruned columns sum to the parent product volume", {
+  sim <- make_mid_rotation_sim()
+  mv <- inia_merch_vol(sim, age = 16, pruned_height = 6)
+  for (nm in c("vol_large_sawlog", "vol_small_sawlog", "vol_pulp")) {
+    parent <- attr(mv, "totals")[[nm]]
+    split  <- attr(mv, "totals")[[paste0(nm, "_pruned")]] +
+              attr(mv, "totals")[[paste0(nm, "_unpruned")]]
+    expect_equal(parent, split, tolerance = 1e-6,
+                 info = paste("product:", nm))
+  }
+})
+
+test_that("pruned_height above the tallest tree pushes all volume to pruned", {
+  sim <- make_mid_rotation_sim()
+  mv <- inia_merch_vol(sim, age = 16, pruned_height = 1e3)
+  totals <- attr(mv, "totals")
+  for (nm in c("vol_large_sawlog", "vol_small_sawlog", "vol_pulp")) {
+    expect_equal(totals[[paste0(nm, "_unpruned")]], 0, tolerance = 1e-6)
+    expect_equal(totals[[paste0(nm, "_pruned")]],
+                 totals[[nm]], tolerance = 1e-6)
+  }
+})
+
+test_that("pruned_height = 0 pushes all volume to unpruned", {
+  sim <- make_mid_rotation_sim()
+  mv <- inia_merch_vol(sim, age = 16, pruned_height = 0)
+  totals <- attr(mv, "totals")
+  for (nm in c("vol_large_sawlog", "vol_small_sawlog", "vol_pulp")) {
+    expect_equal(totals[[paste0(nm, "_pruned")]], 0, tolerance = 1e-6)
+    expect_equal(totals[[paste0(nm, "_unpruned")]],
+                 totals[[nm]], tolerance = 1e-6)
+  }
+})
+
+test_that("pruned_height rejects negative values", {
+  sim <- make_mid_rotation_sim()
+  expect_error(inia_merch_vol(sim, age = 16, pruned_height = -2),
+               "non-negative")
+})

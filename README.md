@@ -152,7 +152,7 @@ inia_merch_vol(
 )
 ```
 
-See the *getting-started* vignette for a worked five-grade-plus-biomass example with the per-class breakdown.
+Each product can also carry an optional `l_min` (minimum log length, m): a grade whose section would be shorter than `l_min` is skipped without consuming the bole, so the next smaller grade gets the full section. Supplying `pruned_height` further splits each product's volume into `vol_<prod>_pruned` (below pruned height) and `vol_<prod>_unpruned` (above) — purely geometric, no clear-wood quality modifier applied to the volume itself. See the *getting-started* vignette for the worked five-grade-plus-biomass example with the per-class breakdown.
 
 ![Merchantable assortment](man/figures/merch-assortment.png)
 

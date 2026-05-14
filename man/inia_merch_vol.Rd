@@ -4,19 +4,34 @@
 \alias{inia_merch_vol}
 \title{Stand-level merchantable volume by product assortment}
 \usage{
-inia_merch_vol(sim, age, products = NULL, hb = 0.1, hd_k = 0.5)
+inia_merch_vol(
+  sim,
+  age,
+  products = NULL,
+  pruned_height = NULL,
+  hb = 0.1,
+  hd_k = 0.5
+)
 }
 \arguments{
-\item{sim}{Result of [simulate_inia()].}
+\item{sim}{Result of [simulate_inia()] (or any object with a
+compatible `trajectory` data frame).}
 
 \item{age}{Target age (must appear in `sim$trajectory$age`).}
 
 \item{products}{Named list. Each element is a list with `d_min` (cm)
--- the small-end diameter for that product. Order does not matter:
+-- the small-end diameter for that product -- and optionally
+`l_min` (m), the minimum log length. Order does not matter:
 products are sorted internally by `d_min` descending. If `NULL`, a
 default assortment of three generic solid-wood grades is used:
 `large_sawlog` (>= 25 cm), `small_sawlog` (>= 14 cm), and `pulp`
-(>= 8 cm). Pass any custom list to define market-specific products.}
+(>= 8 cm), all without a length constraint.}
+
+\item{pruned_height}{Optional height above ground (m) below which the
+stem has been silviculturally pruned. When supplied, each product
+gains companion `vol_<prod>_pruned` and `vol_<prod>_unpruned`
+columns whose sum equals `vol_<prod>`. No quality coefficient is
+applied -- the split is geometric only.}
 
 \item{hb}{Stump height (m). Default 0.10.}
 
@@ -26,18 +41,37 @@ estimating per-diameter-class total height. Default 0.5.}
 \value{
 Data frame with one row per diameter class times one column
   per product (`vol_<product>`, m^3/ha), plus `class_mid`, `freq`,
-  `H_class`, and `vol_total` (m^3/ha) per class. A `totals` attribute
-  on the returned object gives per-product per-hectare aggregates and
-  the residual `top_waste` (volume between the smallest small-end
-  limit and the tip).
+  `H_class`, and `vol_total` (m^3/ha) per class. When `pruned_height`
+  is set, paired `vol_<product>_pruned` / `vol_<product>_unpruned`
+  columns are added (the original `vol_<product>` remains as their
+  sum). The `totals` attribute carries per-product per-hectare
+  aggregates and the residual `top_waste` volume (above the smallest
+  small-end limit); when `pruned_height` is set the per-product
+  pruned/unpruned aggregates are added too.
 }
 \description{
 Buckets stand volume into named products defined by small-end diameter
-limits, integrating the Fang taper across the recovered Weibull
-diameter distribution at the requested age. Products are assigned to
-butt-up sections of each stem: the product with the largest `d_min`
-takes the butt log until diameter falls below its limit, the next
-product takes the next section down to its limit, and so on.
+and (optionally) minimum-log-length limits, integrating the Fang taper
+across the recovered Weibull diameter distribution at the requested
+age. Products are assigned to butt-up sections of each stem: the
+product with the largest `d_min` takes the butt log down to its
+small-end limit (provided the resulting log meets `l_min`), the next
+product takes the next section, and so on. A product whose section
+would be shorter than its `l_min` is skipped without consuming any
+bole -- the smaller-grade products that follow still get a shot at
+the section.
+}
+\details{
+When `pruned_height` is supplied, each product's volume is also split
+into the portion below the pruned height (`vol_<prod>_pruned`) and
+the portion above it (`vol_<prod>_unpruned`). The split is purely
+geometric -- no clear-wood / knotty quality modifier is applied to
+the volume itself.
+
+The simulator object is only used as a container for `trajectory`,
+so this function works equally with any model whose trajectory data
+frame carries the columns `age`, `N`, `DAP_medio`, `DAP_max`,
+`Desvio_DAP`, and `AMD` (the future Paraguay model included).
 }
 \examples{
 sim <- simulate_inia(
@@ -45,6 +79,19 @@ sim <- simulate_inia(
   Hd0 = 7.0, dmax0 = 13.0, SDd0 = 1.8,
   t0 = 2, t_end = 16, zone = 7
 )
-mv <- inia_merch_vol(sim, age = 16)
+
+# Default assortment with a 4 m minimum length on sawlogs.
+mv <- inia_merch_vol(
+  sim, age = 16,
+  products = list(
+    large_sawlog = list(d_min = 25, l_min = 4),
+    small_sawlog = list(d_min = 14, l_min = 2.4),
+    pulp         = list(d_min = 8)
+  )
+)
 attr(mv, "totals")
+
+# Same regime, with the lower 6 m pruned: see the per-grade split.
+mv_pruned <- inia_merch_vol(sim, age = 16, pruned_height = 6)
+attr(mv_pruned, "totals")
 }

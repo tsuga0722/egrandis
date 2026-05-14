@@ -284,6 +284,29 @@ mv_six <- inia_merch_vol(
 attr(mv_six, "totals")
 ```
 
+### Minimum log length and pruned-height split
+
+Each product can also carry an optional `l_min` (minimum log length, m).
+The butt-up cascade then skips a grade whose section would be shorter
+than `l_min` without consuming the bole, so the next smaller grade gets
+the full section. With `pruned_height` set, every product's volume is
+additionally split into the portion below the pruned height
+(`vol_<prod>_pruned`) and the portion above it (`vol_<prod>_unpruned`).
+The split is purely geometric -- no clear-wood quality modifier is
+applied to the volume itself.
+
+```{r}
+mv_pruned <- inia_merch_vol(
+  sim, age = 16, pruned_height = 6,
+  products = list(
+    large_sawlog = list(d_min = 25, l_min = 4),
+    small_sawlog = list(d_min = 14, l_min = 2.4),
+    pulp         = list(d_min = 8)
+  )
+)
+attr(mv_pruned, "totals")
+```
+
 The output of `inia_merch_vol()` is also a per-class data frame, so you
 can inspect how a single diameter class contributes to each grade:
 
