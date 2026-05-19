@@ -4,6 +4,7 @@ Title: Growth and Yield Models for Eucalyptus grandis Clonal Plantations
 Version: 0.2.0
 Authors@R: c(
     person("tsuga0722",
+           email = "tsuga0722@gmail.com",
            role = c("aut", "cre"),
            comment = c(GITHUB = "tsuga0722"))
   )
