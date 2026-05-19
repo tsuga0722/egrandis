@@ -113,6 +113,49 @@ inia_hd_from_si <- function(t, SI, base_age = 10, Z7 = 1) {
   inia_hd(SI, base_age, t, Z7)
 }
 
+
+#' Estimate INIA site index from a dominant-height measurement
+#'
+#' Given a dominant-height observation `Hd` at age `age`, returns the
+#' implied site index (dominant height at `base_age`, default 10 yr)
+#' under the INIA Johnson-Schumacher polymorphic height curve. The
+#' calculation is the same projection used internally to grow Hd
+#' forward, applied with `t2 = base_age` -- the polymorphic form is
+#' path-independent, so projecting backward from the measurement to
+#' `base_age` is exact.
+#'
+#' Vectorised over `Hd` and `age` (must be the same length); `zone`
+#' and `base_age` are scalar.
+#'
+#' @param Hd Measured dominant height (m). Numeric, length >= 1.
+#' @param age Age at measurement (years). Numeric, same length as `Hd`.
+#' @param zone INIA zone: 7 (Tacuarembo/Rivera), 8 (Durazno/Cerro Largo),
+#'   or 9 (Paysandu/Rio Negro). Default 7.
+#' @param base_age Reference age for site index (years). Default 10.
+#' @return Estimated site index (m), same length as `Hd`.
+#' @examples
+#' # Single measurement
+#' inia_si_from_hd(Hd = 24, age = 8, zone = 7)
+#'
+#' # Inventory: multiple plots on the same site
+#' inia_si_from_hd(Hd  = c(20, 24, 28),
+#'                 age = c( 7,  8,  9),
+#'                 zone = 7)
+#' @export
+inia_si_from_hd <- function(Hd, age, zone = 7, base_age = 10) {
+  if (!zone %in% c(7, 8, 9)) {
+    stop("`zone` must be 7, 8, or 9")
+  }
+  if (length(Hd) != length(age)) {
+    stop("`Hd` and `age` must have the same length")
+  }
+  if (any(Hd <= 0.1) || any(age <= 0)) {
+    stop("`Hd` and `age` must be positive")
+  }
+  Z7 <- ifelse(zone == 7, 1, 0)
+  inia_hd(Hd, t1 = age, t2 = base_age, Z7 = Z7)
+}
+
 # Project basal area from t1 to t2. Thinning history modifies C.
 # Na = trees/ha after thin, Nb = before, tt = age at thin.
 inia_g <- function(G1, t1, t2, Z7 = 1, Na = NA, Nb = NA, tt = NA) {

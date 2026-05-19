@@ -126,6 +126,63 @@ grandis_hd_from_si <- function(t, SI, base_age = 10,
 }
 
 
+#' Estimate site index from a dominant-height measurement (augmented form)
+#'
+#' Given a dominant-height observation `Hd` at age `age`, returns the
+#' implied site index (dominant height at `base_age`, default 10 yr)
+#' under the augmented RC2019 Eqn 11 height curve, parameterised by
+#' the site variables `PASW`, `slope`, and `aspect`. Like
+#' [inia_si_from_hd()], the calculation is exact because the
+#' polymorphic Johnson-Schumacher form is path-independent.
+#'
+#' Vectorised over `Hd` and `age` (must be the same length); the site
+#' variables are scalar (one site at a time). Loop over plots from
+#' different sites by Map/lapply.
+#'
+#' Note on direction of the site-variable effect: the augmented Eqn 11
+#' polymorphic curve is shifted upward at high PASW or favourable
+#' aspect. For a measurement *before* `base_age` (e.g. age 8, base
+#' age 10), recovering SI projects forward and the shifted curve
+#' yields a *higher* SI estimate for the same (Hd, age) pair. For a
+#' measurement *past* `base_age`, the projection runs backward and
+#' the sign flips. Either way, feeding the recovered SI back into
+#' [simulate_grandis()] with the same site variables reproduces the
+#' observation.
+#'
+#' @param Hd Measured dominant height (m). Numeric, length >= 1.
+#' @param age Age at measurement (years). Numeric, same length as `Hd`.
+#' @param PASW Potentially available soil water (mm). Scalar.
+#' @param slope Slope of the site (percent). Default 0 (flat).
+#' @param aspect Aspect (azimuth) of the slope, radians from north
+#'   (0 = N, pi/2 = E, pi = S, 3*pi/2 = W). Default 0.
+#' @param base_age Reference age for site index (years). Default 10.
+#' @return Estimated site index (m), same length as `Hd`.
+#' @examples
+#' # Single plot, with site variables
+#' grandis_si_from_hd(Hd = 26, age = 8, PASW = 140, slope = 5, aspect = pi/4)
+#'
+#' # Multiple plots on the same site
+#' grandis_si_from_hd(Hd  = c(22, 26, 30),
+#'                    age = c( 7,  8, 10),
+#'                    PASW = 140, slope = 5, aspect = pi/4)
+#' @export
+grandis_si_from_hd <- function(Hd, age,
+                                PASW, slope = 0, aspect = 0,
+                                base_age = 10) {
+  if (length(Hd) != length(age)) {
+    stop("`Hd` and `age` must have the same length")
+  }
+  if (any(Hd <= 0.1) || any(age <= 0)) {
+    stop("`Hd` and `age` must be positive")
+  }
+  if (length(PASW) != 1 || length(slope) != 1 || length(aspect) != 1) {
+    stop("`PASW`, `slope`, and `aspect` must be scalars (one site at a time)")
+  }
+  grandis_hd(Hd, t1 = age, t2 = base_age,
+             PASW = PASW, slope = slope, aspect = aspect)
+}
+
+
 # Project basal area from t1 to t2 under augmented Eqn 12. The thinning
 # modifier `c1 * (Na/Nb)/tt` matches the INIA base form: Na = trees/ha
 # after thin, Nb = before, tt = age at thin.
